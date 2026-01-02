@@ -10,13 +10,11 @@ interface Call {
   organizer: string;
   participants: string[];
   transcript: string;
-  categoryId: string | null;
   aiAnalysis: string | null;
   aiRating: number | null;
   aiSentiment: string | null;
   aiStrengths: string[];
   aiAreasForImprovement: string[];
-  category: { id: string; name: string } | null;
 }
 
 export function CallDetailTabs({ call }: { call: Call }) {

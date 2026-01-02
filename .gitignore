@@ -43,3 +43,4 @@ prisma/*.db-journal
 # Misc
 *.log
 .turbo
+.vercel

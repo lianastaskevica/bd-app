@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
     // Handle user denial
     if (error) {
       return NextResponse.redirect(
-        new URL(`/dashboard?error=google_auth_denied`, request.url)
+        new URL(`/integrations?error=google_auth_denied`, request.url)
       );
     }
 
     if (!code || !state) {
       return NextResponse.redirect(
-        new URL(`/dashboard?error=invalid_callback`, request.url)
+        new URL(`/integrations?error=invalid_callback`, request.url)
       );
     }
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       }
     } catch (error) {
       return NextResponse.redirect(
-        new URL(`/dashboard?error=invalid_state`, request.url)
+        new URL(`/integrations?error=invalid_state`, request.url)
       );
     }
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokens.refresh_token) {
       return NextResponse.redirect(
-        new URL(`/dashboard?error=no_refresh_token`, request.url)
+        new URL(`/integrations?error=no_refresh_token`, request.url)
       );
     }
 
@@ -95,14 +95,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Redirect to success page
+    // Redirect to integrations page
     return NextResponse.redirect(
-      new URL('/dashboard?google_connected=true', request.url)
+      new URL('/integrations?google_drive_connected=true', request.url)
     );
   } catch (error: any) {
     console.error('Google auth callback error:', error);
     return NextResponse.redirect(
-      new URL(`/dashboard?error=auth_failed`, request.url)
+      new URL(`/integrations?error=auth_failed`, request.url)
     );
   }
 }

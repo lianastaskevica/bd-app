@@ -57,6 +57,26 @@ export default function GoogleDriveIntegration() {
   const [includeCallsInClear, setIncludeCallsInClear] = useState(false);
 
   useEffect(() => {
+    // Check for connection status in URL params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('google_drive_connected') === 'true') {
+      setSuccess('Google Drive connected successfully!');
+      // Clean up URL
+      window.history.replaceState({}, '', '/integrations');
+    } else if (params.get('error')) {
+      const errorType = params.get('error');
+      const errorMessages: Record<string, string> = {
+        'google_auth_denied': 'Google Drive connection was cancelled',
+        'invalid_callback': 'Invalid callback from Google',
+        'invalid_state': 'Session expired, please try again',
+        'no_refresh_token': 'Could not get refresh token, please try again',
+        'auth_failed': 'Failed to connect Google Drive',
+      };
+      setError(errorMessages[errorType || ''] || 'An error occurred');
+      // Clean up URL
+      window.history.replaceState({}, '', '/integrations');
+    }
+
     loadStatus();
   }, []);
 

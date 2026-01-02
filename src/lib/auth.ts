@@ -1,6 +1,8 @@
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
+import { getServerSession } from 'next-auth';
+import { authOptions } from './auth-config';
 
 const SESSION_COOKIE_NAME = 'session';
 
@@ -41,6 +43,17 @@ export async function createSession(userId: string): Promise<string> {
 }
 
 export async function getSession(): Promise<Session | null> {
+  // Try NextAuth session first
+  const nextAuthSession = await getServerSession(authOptions);
+  if (nextAuthSession?.user) {
+    return {
+      userId: nextAuthSession.user.id as string,
+      email: nextAuthSession.user.email!,
+      name: nextAuthSession.user.name || undefined,
+    };
+  }
+
+  // Fallback to cookie-based session for backward compatibility
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME);
 

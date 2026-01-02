@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.scss";
+import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
   title: "CallInsight - AI Call Analytics",
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
+        <SessionProvider>
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

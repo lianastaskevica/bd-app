@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
       where: { email },
     });
 
-    if (!user) {
+    if (!user || !user.password) {
+      // User doesn't exist or is an OAuth-only user
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }

@@ -123,6 +123,27 @@
   color: #666;
 }
 
+.headerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.clearButton {
+  padding: 0.5rem 1rem;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #ffe69c;
+    border-color: #ffb300;
+  }
+}
+
 .disconnectButton {
   padding: 0.5rem 1rem;
   background: #f5f5f5;

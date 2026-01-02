@@ -49,9 +49,12 @@ export default function GoogleDriveIntegration() {
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showRemoveFolderModal, setShowRemoveFolderModal] = useState(false);
+  const [showClearDataModal, setShowClearDataModal] = useState(false);
   const [folderToRemove, setFolderToRemove] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
   const [removingFolder, setRemovingFolder] = useState(false);
+  const [clearingData, setClearingData] = useState(false);
+  const [includeCallsInClear, setIncludeCallsInClear] = useState(false);
 
   useEffect(() => {
     loadStatus();
@@ -272,6 +275,37 @@ export default function GoogleDriveIntegration() {
     }
   };
 
+  const handleClearDataClick = () => {
+    setShowClearDataModal(true);
+  };
+
+  const handleClearDataConfirm = async () => {
+    setClearingData(true);
+    try {
+      setError(null);
+      const response = await fetch('/api/drive/clear-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ includeImportedCalls: includeCallsInClear }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(data.message);
+        setShowClearDataModal(false);
+        setIncludeCallsInClear(false);
+        loadStatus();
+      } else {
+        setError(data.error || 'Failed to clear data');
+        setClearingData(false);
+      }
+    } catch (error) {
+      setError('Failed to clear synced data');
+      setClearingData(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.container}>
@@ -318,9 +352,14 @@ export default function GoogleDriveIntegration() {
                   Connected on {new Date(status.connectedAt!).toLocaleDateString()}
                 </p>
               </div>
-              <button onClick={handleDisconnectClick} className={styles.disconnectButton}>
-                Disconnect
-              </button>
+              <div className={styles.headerActions}>
+                <button onClick={handleClearDataClick} className={styles.clearButton}>
+                  Clear All Data
+                </button>
+                <button onClick={handleDisconnectClick} className={styles.disconnectButton}>
+                  Disconnect
+                </button>
+              </div>
             </div>
 
             {status.stats && (
@@ -510,6 +549,35 @@ export default function GoogleDriveIntegration() {
         confirmText="Remove"
         confirmType="danger"
         isLoading={removingFolder}
+      />
+
+      <Modal
+        isOpen={showClearDataModal}
+        onClose={() => {
+          setShowClearDataModal(false);
+          setIncludeCallsInClear(false);
+        }}
+        onConfirm={handleClearDataConfirm}
+        title="Clear All Synced Data"
+        message={
+          <div>
+            <p style={{ marginBottom: '16px' }}>
+              This will delete all Drive files that have been synced from Google Drive.
+            </p>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={includeCallsInClear}
+                onChange={(e) => setIncludeCallsInClear(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Also delete imported Call records (⚠️ Cannot be undone)</span>
+            </label>
+          </div>
+        }
+        confirmText="Clear Data"
+        confirmType="danger"
+        isLoading={clearingData}
       />
     </div>
   );

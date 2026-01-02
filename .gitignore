@@ -44,3 +44,4 @@ prisma/*.db-journal
 *.log
 .turbo
 .vercel
+ENVIRONMENT_VARIABLES.txt

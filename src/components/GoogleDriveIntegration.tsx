@@ -65,6 +65,7 @@ export default function GoogleDriveIntegration() {
       window.history.replaceState({}, '', '/integrations');
     } else if (params.get('error')) {
       const errorType = params.get('error');
+      const details = params.get('details');
       const errorMessages: Record<string, string> = {
         'google_auth_denied': 'Google Drive connection was cancelled',
         'invalid_callback': 'Invalid callback from Google',
@@ -72,7 +73,12 @@ export default function GoogleDriveIntegration() {
         'no_refresh_token': 'Could not get refresh token, please try again',
         'auth_failed': 'Failed to connect Google Drive',
       };
-      setError(errorMessages[errorType || ''] || 'An error occurred');
+      let errorMsg = errorMessages[errorType || ''] || 'An error occurred';
+      if (details) {
+        errorMsg += `: ${details}`;
+      }
+      setError(errorMsg);
+      console.error('Drive connection error:', errorType, details);
       // Clean up URL
       window.history.replaceState({}, '', '/integrations');
     }

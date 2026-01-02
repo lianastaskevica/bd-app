@@ -1,0 +1,135 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  googleIntegration GoogleIntegration?
+  driveSources      DriveSource[]
+  driveFiles        DriveFile[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  calls     Call[]
+  prompts   Prompt[]
+}
+
+model Prompt {
+  id          String    @id @default(cuid())
+  name        String
+  content     String    @db.Text
+  isActive    Boolean   @default(true)
+  categoryId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  @@index([categoryId])
+}
+
+model Call {
+  id                  String   @id @default(cuid())
+  clientName          String
+  callDate            DateTime
+  organizer           String
+  participants        String[] @default([])
+  transcript          String   @db.Text
+  categoryId          String?
+  aiAnalysis          String?  @db.Text
+  aiRating            Float?
+  aiSentiment         String?
+  aiStrengths         String[] @default([])
+  aiAreasForImprovement String[] @default([])
+  driveFileId         String?  @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  category            Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  driveFile           DriveFile? @relation(fields: [driveFileId], references: [id], onDelete: SetNull)
+  
+  @@index([clientName])
+  @@index([categoryId])
+  @@index([organizer])
+  @@index([callDate])
+  @@index([driveFileId])
+}
+
+model GoogleIntegration {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  refreshToken  String   @db.Text  // Encrypted
+  accessToken   String?  @db.Text
+  tokenExpiry   DateTime?
+  scopes        String[] @default([])
+  googleEmail   String?  // Email of the Google account
+  googleName    String?  // Name of the Google account owner
+  connectedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DriveSource {
+  id         String   @id @default(cuid())
+  userId     String
+  folderId   String
+  folderName String?
+  lastSync   DateTime?
+  status     String   @default("active") // active, paused, error
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, folderId])
+  @@index([userId])
+  @@index([folderId])
+}
+
+model DriveFile {
+  id                String   @id @default(cuid())
+  userId            String
+  googleFileId      String   @unique
+  name              String
+  mimeType          String
+  modifiedTime      DateTime
+  size              BigInt?
+  md5Checksum       String?
+  webViewLink       String?
+  rawText           String?  @db.Text
+  importedAt        DateTime?
+  status            String   @default("pending") // pending, imported, error, skipped
+  errorMessage      String?  @db.Text
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calls             Call[]
+  
+  @@index([userId])
+  @@index([googleFileId])
+  @@index([status])
+  @@index([modifiedTime])
+}
+

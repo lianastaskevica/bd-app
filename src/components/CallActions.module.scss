@@ -1,0 +1,13 @@
+.actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-start;
+  flex-direction: column;
+}
+
+.categorySelect {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+

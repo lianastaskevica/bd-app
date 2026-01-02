@@ -56,12 +56,14 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       if (account?.provider === 'google') {
         try {
+          console.log('Google sign-in for:', user.email);
           // Check if user exists
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
           });
 
           if (existingUser) {
+            console.log('Existing user found:', existingUser.id);
             // Update Google ID if not set
             if (!existingUser.googleId && account.providerAccountId) {
               await prisma.user.update({
@@ -72,10 +74,11 @@ export const authOptions: NextAuthOptions = {
                   name: user.name || existingUser.name,
                 },
               });
+              console.log('Updated user Google ID');
             }
           } else {
             // Create new user
-            await prisma.user.create({
+            const newUser = await prisma.user.create({
               data: {
                 email: user.email!,
                 name: user.name,
@@ -83,6 +86,7 @@ export const authOptions: NextAuthOptions = {
                 googleId: account.providerAccountId,
               },
             });
+            console.log('New user created:', newUser.id);
           }
 
           return true;
@@ -96,7 +100,23 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
+        // For Google OAuth, we need to fetch the actual database user ID
+        if (account?.provider === 'google') {
+          console.log('JWT callback - fetching user for:', user.email);
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+          });
+          if (dbUser) {
+            token.id = dbUser.id;
+            console.log('JWT callback - set token.id to:', dbUser.id);
+          } else {
+            console.error('User not found in database after Google sign-in:', user.email);
+            token.id = user.id; // Fallback
+          }
+        } else {
+          token.id = user.id;
+          console.log('JWT callback - credentials login, userId:', user.id);
+        }
       }
 
       return token;

@@ -87,6 +87,19 @@ export async function GET(request: NextRequest) {
       // Continue anyway - we have tokens
     }
 
+    // Verify user exists before storing tokens
+    console.log('Verifying user exists in database...');
+    const user = await prisma.user.findUnique({
+      where: { id: stateData.userId },
+    });
+
+    if (!user) {
+      console.error('User not found in database:', stateData.userId);
+      throw new Error('User not found. Please sign out and sign in again.');
+    }
+
+    console.log('User verified:', user.email);
+
     // Store tokens and user info in database
     console.log('Storing tokens in database for userId:', stateData.userId);
     try {

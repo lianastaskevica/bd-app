@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Modal } from './Modal';
+import { RecalculateButton } from './RecalculateButton';
 import styles from './PromptCard.module.scss';
 
 interface Prompt {
@@ -107,6 +108,12 @@ export function PromptCard({
             🗑️ Delete
           </button>
         </div>
+
+        {prompt.isActive && (
+          <div className={styles.recalculateSection}>
+            <RecalculateButton promptId={prompt.id} promptName={prompt.name} />
+          </div>
+        )}
       </div>
 
       <Modal

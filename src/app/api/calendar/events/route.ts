@@ -9,10 +9,20 @@ export async function GET(request: NextRequest) {
     
     const filter = searchParams.get('filter'); // 'external', 'internal', 'all', 'pending'
     const limit = parseInt(searchParams.get('limit') || '100');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     const where: any = {
       userId: session.userId,
     };
+
+    // Filter by date range if provided
+    if (startDate && endDate) {
+      where.startTime = {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      };
+    }
 
     // Filter by external/internal
     if (filter === 'external') {

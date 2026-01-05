@@ -87,9 +87,15 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
     setLoading(true);
     setError(''); // Clear any previous errors
     try {
-      // Add timestamp to prevent caching
+      // Add timestamp to prevent caching and pass date range
       const timestamp = new Date().getTime();
-      const response = await fetch(`/api/calendar/events?filter=pending&t=${timestamp}`);
+      const params = new URLSearchParams({
+        filter: 'pending',
+        startDate,
+        endDate,
+        t: timestamp.toString(),
+      });
+      const response = await fetch(`/api/calendar/events?${params.toString()}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -233,6 +239,12 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
 
       {step === 'select' && (
         <div className={styles.selectStep}>
+          <div className={styles.dateRangeInfo}>
+            📅 Showing events from{' '}
+            <strong>{new Date(startDate).toLocaleDateString()}</strong> to{' '}
+            <strong>{new Date(endDate).toLocaleDateString()}</strong>
+          </div>
+
           <div className={styles.stats}>
             <div className={styles.stat}>
               <div className={styles.statValue}>{summary.pending}</div>
@@ -244,9 +256,16 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
             </div>
           </div>
 
-          {events.length === 0 ? (
+          {loading ? (
+            <div className={styles.empty}>
+              <p>Loading events...</p>
+            </div>
+          ) : events.length === 0 ? (
             <div className={styles.empty}>
               <p>No external calendar events found in the selected date range.</p>
+              <p style={{ fontSize: '13px', marginTop: '8px', color: 'var(--text-secondary)' }}>
+                ({new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()})
+              </p>
               <button className="btn btn-secondary" onClick={() => {
                 setStep('sync');
                 setSuccess('');

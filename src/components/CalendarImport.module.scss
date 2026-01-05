@@ -81,6 +81,21 @@
   gap: var(--spacing-lg);
 }
 
+.dateRangeInfo {
+  padding: var(--spacing-md);
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+
+  strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

@@ -4,6 +4,149 @@ import { prisma } from '@/lib/prisma';
 import { fetchCalendarEvents } from '@/lib/calendar-match';
 import { classifyMeeting } from '@/lib/domain-classifier';
 import { CALENDAR_CONFIG } from '@/lib/config';
+import { getDriveClient, getFileContent } from '@/lib/google-drive';
+
+// Helper to search Drive API directly for transcript files
+async function searchDriveForTranscript(
+  userId: string,
+  event: any
+): Promise<{ fileId: string; content: string } | null> {
+  try {
+    const drive = await getDriveClient(userId);
+    
+    // Build search query for Google Drive
+    const queries = [];
+    
+    // Search by meeting title if available
+    if (event.summary) {
+      // Clean up meeting title for search
+      const cleanTitle = event.summary
+        .replace(/[^\w\s]/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .slice(0, 3) // Use first 3 words
+        .join(' ');
+      
+      if (cleanTitle) {
+        queries.push(`name contains '${cleanTitle}'`);
+      }
+    }
+    
+    // Search in common folders and file patterns
+    const searchPatterns = [
+      "(name contains 'transcript' or name contains 'Transcript')",
+      "(name contains 'meeting' or name contains 'Meeting')",
+      "mimeType = 'application/vnd.google-apps.document' or mimeType = 'text/plain'",
+    ];
+    
+    // Time-based search - files modified around meeting time
+    const toleranceMs = CALENDAR_CONFIG.TIME_MATCH_WINDOW_MINUTES * 60 * 1000;
+    const searchStart = new Date(event.startTime.getTime() - toleranceMs);
+    const searchEnd = new Date(event.endTime.getTime() + toleranceMs);
+    
+    const timeQuery = `modifiedTime >= '${searchStart.toISOString()}' and modifiedTime <= '${searchEnd.toISOString()}'`;
+    
+    // Combine all search patterns
+    let fullQuery = `(${searchPatterns.join(' or ')}) and ${timeQuery} and trashed=false`;
+    
+    // Execute search
+    const response = await drive.files.list({
+      q: fullQuery,
+      fields: 'files(id,name,mimeType,modifiedTime)',
+      pageSize: 20,
+      orderBy: 'modifiedTime desc',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+
+    const files = response.data.files || [];
+    
+    if (files.length === 0) {
+      return null;
+    }
+
+    // Find best match by filename similarity and time proximity
+    let bestMatch = files[0];
+    let bestScore = 0;
+
+    for (const file of files) {
+      let score = 0;
+      
+      // Score by time proximity (closer = higher score)
+      const fileTime = new Date(file.modifiedTime!).getTime();
+      const timeDiff = Math.abs(fileTime - event.endTime.getTime());
+      const timeScore = Math.max(0, 100 - (timeDiff / (1000 * 60 * 60))); // Decrease score per hour
+      score += timeScore;
+      
+      // Score by filename similarity with meeting title
+      if (event.summary && file.name) {
+        const titleLower = event.summary.toLowerCase();
+        const nameLower = file.name.toLowerCase();
+        const titleWords = titleLower.split(/\s+/);
+        
+        // Count matching words
+        let matchingWords = 0;
+        for (const word of titleWords) {
+          if (word.length > 3 && nameLower.includes(word)) {
+            matchingWords++;
+          }
+        }
+        score += matchingWords * 50;
+      }
+      
+      // Bonus for "transcript" in filename
+      if (file.name?.toLowerCase().includes('transcript')) {
+        score += 30;
+      }
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = file;
+      }
+    }
+
+    // Only use if score is reasonable
+    if (bestScore < 20) {
+      return null;
+    }
+
+    // Download/export the file content
+    try {
+      const content = await getFileContent(userId, bestMatch.id!, bestMatch.mimeType!);
+      
+      // Store in database for future use
+      await prisma.driveFile.upsert({
+        where: { googleFileId: bestMatch.id! },
+        create: {
+          userId,
+          googleFileId: bestMatch.id!,
+          name: bestMatch.name!,
+          mimeType: bestMatch.mimeType!,
+          modifiedTime: new Date(bestMatch.modifiedTime!),
+          rawText: content,
+          status: 'imported',
+          importedAt: new Date(),
+        },
+        update: {
+          rawText: content,
+          status: 'imported',
+          importedAt: new Date(),
+        },
+      });
+
+      return {
+        fileId: bestMatch.id!,
+        content,
+      };
+    } catch (error) {
+      console.error('Error downloading transcript:', error);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error searching Drive for transcript:', error);
+    return null;
+  }
+}
 
 // Helper to find transcript file for a calendar event
 async function findTranscriptForEvent(
@@ -11,12 +154,12 @@ async function findTranscriptForEvent(
   event: any
 ): Promise<string | null> {
   try {
-    // Search for Drive files within time window of the event
+    // First check if we already have it in database
     const toleranceMs = CALENDAR_CONFIG.TIME_MATCH_WINDOW_MINUTES * 60 * 1000;
     const searchStart = new Date(event.startTime.getTime() - toleranceMs);
     const searchEnd = new Date(event.endTime.getTime() + toleranceMs);
 
-    const files = await prisma.driveFile.findMany({
+    const existingFile = await prisma.driveFile.findFirst({
       where: {
         userId,
         status: 'imported',
@@ -29,20 +172,22 @@ async function findTranscriptForEvent(
         },
       },
       orderBy: { modifiedTime: 'desc' },
-      take: 1,
     });
 
-    if (files.length === 0) return null;
+    if (existingFile) {
+      return existingFile.id;
+    }
 
-    // Return the closest match by time
-    const file = files[0];
-    const distance = Math.abs(
-      file.modifiedTime.getTime() - event.endTime.getTime()
-    );
-
-    // Only match if within tolerance
-    if (distance <= toleranceMs) {
-      return file.id;
+    // Not in database - search Drive API directly
+    const transcript = await searchDriveForTranscript(userId, event);
+    
+    if (transcript) {
+      // Find the database record we just created
+      const driveFile = await prisma.driveFile.findUnique({
+        where: { googleFileId: transcript.fileId },
+      });
+      
+      return driveFile?.id || null;
     }
 
     return null;

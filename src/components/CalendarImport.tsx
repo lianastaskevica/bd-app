@@ -55,6 +55,8 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
     setSyncing(true);
     setError('');
     setSuccess('');
+    setEvents([]); // Clear old events
+    setSelectedEvents(new Set()); // Clear selections
 
     try {
       const response = await fetch('/api/calendar/sync', {
@@ -83,8 +85,11 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
 
   const loadEvents = async () => {
     setLoading(true);
+    setError(''); // Clear any previous errors
     try {
-      const response = await fetch('/api/calendar/events?filter=pending');
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/calendar/events?filter=pending&t=${timestamp}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -242,7 +247,10 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
           {events.length === 0 ? (
             <div className={styles.empty}>
               <p>No external calendar events found in the selected date range.</p>
-              <button className="btn btn-secondary" onClick={() => setStep('sync')}>
+              <button className="btn btn-secondary" onClick={() => {
+                setStep('sync');
+                setSuccess('');
+              }}>
                 ← Change Date Range
               </button>
             </div>
@@ -256,7 +264,12 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
                   <button className="btn btn-secondary" onClick={deselectAll}>
                     Deselect All
                   </button>
-                  <button className="btn btn-secondary" onClick={() => setStep('sync')}>
+                  <button className="btn btn-secondary" onClick={() => {
+                    setStep('sync');
+                    setEvents([]);
+                    setSelectedEvents(new Set());
+                    setSuccess('');
+                  }}>
                     ← Change Date Range
                   </button>
                 </div>

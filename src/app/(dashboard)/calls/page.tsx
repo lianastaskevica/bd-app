@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import styles from './calls.module.scss';
 import { CallFilters } from '@/components/CallFilters';
+import { CalendarImport } from '@/components/CalendarImport';
 
 interface SearchParams {
   client?: string;
@@ -84,6 +85,8 @@ export default async function CallsPage({
           + Upload Call
         </Link>
       </div>
+
+      <CalendarImport />
 
       <CallFilters
         clients={clients}

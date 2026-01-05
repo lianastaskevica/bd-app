@@ -22,6 +22,7 @@ model User {
   googleIntegration GoogleIntegration?
   driveSources      DriveSource[]
   driveFiles        DriveFile[]
+  calendarEvents    CalendarEvent[]
 }
 
 model Category {
@@ -142,5 +143,44 @@ model DriveFile {
   @@index([googleFileId])
   @@index([status])
   @@index([modifiedTime])
+}
+
+model CalendarEvent {
+  id                  String   @id @default(cuid())
+  userId              String
+  googleEventId       String   // Google Calendar event ID
+  summary             String?
+  description         String?  @db.Text
+  startTime           DateTime
+  endTime             DateTime
+  organizer           String?  // Organizer email
+  attendees           String[] @default([]) // Attendee emails
+  attendeesOmitted    Boolean  @default(false)
+  hangoutLink         String?
+  meetCode            String?  // Google Meet code
+  
+  // Classification
+  isExternal          Boolean?
+  externalDomains     String[] @default([])
+  
+  // Import status
+  hasTranscript       Boolean  @default(false)
+  transcriptFileId    String?  // Link to DriveFile if found
+  imported            Boolean  @default(false)
+  importedCallId      String?  // Link to Call if imported
+  
+  // Sync metadata
+  syncedAt            DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, googleEventId])
+  @@index([userId])
+  @@index([startTime])
+  @@index([isExternal])
+  @@index([imported])
+  @@index([hasTranscript])
 }
 

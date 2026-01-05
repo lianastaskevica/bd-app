@@ -1,21 +1,27 @@
-# External Call Classification Feature
+# External Call Classification & Calendar Sync Feature
 
 ## Overview
 
-This feature automatically classifies imported call transcripts as **External** or **Internal** based on participant email domains. It integrates with Google Calendar to retrieve meeting attendee information and uses domain-based classification to identify calls with external participants.
+This feature automatically classifies call transcripts as **External** or **Internal** based on participant email domains. It integrates with Google Calendar to:
+1. **Sync calendar events** in a selected date range
+2. **Automatically identify external meetings** based on attendee domains
+3. **Match meetings to transcript files** from Google Drive
+4. **Import external calls** with full classification and AI analysis
 
 ## Key Objectives
 
-- **Import only external calls**: Only transcripts from meetings with at least one external participant (non-company domain) are imported
-- **Automatic classification**: Uses Google Calendar API to get participant emails and classify meetings
-- **Visual indicators**: Display external/internal badges in the UI
-- **Filtering**: Allow users to filter calls by external/internal status
+- **Automatic calendar sync**: Fetch Google Calendar meetings for any date range
+- **Smart classification**: Automatically identify external vs internal meetings based on attendee domains
+- **Intelligent matching**: Match calendar events to Drive transcript files by timestamp
+- **Selective import**: Choose which external meetings to import as calls
+- **Visual indicators**: Display external/internal badges throughout the UI
+- **Advanced filtering**: Filter calls by external/internal status
 
 ## Implementation Details
 
 ### 1. Database Schema
 
-Added four new fields to the `Call` model:
+**Call Model** - Added four new fields:
 
 ```prisma
 model Call {
@@ -29,7 +35,38 @@ model Call {
 }
 ```
 
-**Migration**: `20260105090052_add_external_classification_fields`
+**CalendarEvent Model** - New table for synced calendar events:
+
+```prisma
+model CalendarEvent {
+  id                  String   @id
+  userId              String
+  googleEventId       String   // Google Calendar event ID
+  summary             String?
+  startTime           DateTime
+  endTime             DateTime
+  organizer           String?
+  attendees           String[] // Attendee emails
+  hangoutLink         String?
+  meetCode            String?  // Google Meet code
+  
+  // Classification
+  isExternal          Boolean?
+  externalDomains     String[]
+  
+  // Import tracking
+  hasTranscript       Boolean  // Transcript file found in Drive
+  transcriptFileId    String?
+  imported            Boolean  // Already imported as Call
+  importedCallId      String?
+  
+  syncedAt            DateTime
+}
+```
+
+**Migrations**: 
+- `20260105090052_add_external_classification_fields`
+- `20260105092311_add_calendar_events_table`
 
 ### 2. Configuration (`src/lib/config.ts`)
 
@@ -156,19 +193,33 @@ Shows classification card with:
 2. Grants permissions for Drive + **Calendar** access
 3. Selects Drive folder(s) containing transcripts
 
-### 2. Sync & Import
+### 2. Calendar Sync (NEW!)
 
-1. **Sync Drive files**: Downloads transcript content from selected folders
-2. **Import to Calls**: 
-   - For each transcript file:
-     - Extract call date from file metadata
-     - Query Calendar API for events around that time (±2 hours)
-     - Match closest event by timestamp
-     - Extract attendee emails from Calendar event
-     - Classify as external/internal based on domains
-     - Store classification with call record
+1. Go to **Calls** page
+2. See **"Import from Calendar"** section at top
+3. Select date range (e.g., last 30 days)
+4. Click **"Sync Calendar Events"**
+5. System fetches all Google Meet meetings from Calendar
+6. Automatically classifies each as external/internal based on attendee domains
 
-### 3. Browse & Filter
+### 3. Review & Select Meetings
+
+1. View list of **external meetings** found in date range
+2. See which meetings have transcript files in Drive (matched by timestamp)
+3. Select specific meetings to import
+4. Can select all or choose individually
+
+### 4. Import External Calls
+
+1. Click **"Import Selected"**
+2. For each selected meeting:
+   - Find matching transcript file in Drive (±2 hour window)
+   - Import as Call with full meeting details
+   - Run AI analysis
+   - Mark meeting as imported
+3. New calls appear immediately in calls list
+
+### 5. Browse & Filter
 
 1. View calls list with external/internal badges
 2. Filter by:
@@ -180,8 +231,13 @@ Shows classification card with:
 
 ## API Endpoints
 
+### Calendar Sync (NEW!)
+- **POST** `/api/calendar/sync` - Sync calendar events for date range
+- **GET** `/api/calendar/events` - Get synced calendar events with filters
+- **POST** `/api/calendar/import` - Import selected calendar events as calls
+
 ### Import Calls
-- **POST** `/api/drive/import-to-calls`
+- **POST** `/api/drive/import-to-calls` - Import Drive files to calls
 - **GET** `/api/drive/import-to-calls` - Check available files
 
 ### Drive Management
@@ -234,10 +290,23 @@ export const CALENDAR_CONFIG = {
 
 ### Manual Testing Checklist
 
+**Calendar Sync:**
 - [ ] Connect Google account with Calendar scope
-- [ ] Sync Drive folder with transcripts
-- [ ] Import calls - verify Calendar matching in logs
-- [ ] Check external badge appears for calls with external participants
+- [ ] Go to Calls page, see "Import from Calendar" section
+- [ ] Select date range (last 30 days)
+- [ ] Click "Sync Calendar Events"
+- [ ] Verify external meetings are identified correctly
+- [ ] Check meetings with transcripts are marked
+
+**Import from Calendar:**
+- [ ] Select one or more external meetings
+- [ ] Click "Import Selected"
+- [ ] Verify import succeeds for meetings with transcripts
+- [ ] Check calls appear in calls list with correct data
+- [ ] Verify imported meetings are marked as imported
+
+**Call Management:**
+- [ ] Check external badge appears for imported external calls
 - [ ] Check internal badge appears for all-internal calls
 - [ ] Filter by External - only external calls shown
 - [ ] Filter by Internal - only internal calls shown
@@ -298,7 +367,33 @@ export const CALENDAR_CONFIG = {
 
 ---
 
-**Version**: 1.0  
+## What's New in Version 2.0
+
+### ✨ Calendar Sync Feature
+
+**Before (v1.0)**: Classification happened during manual Drive file import
+- Had to manually sync Drive files first
+- Import would try to match transcripts to Calendar retroactively
+- Manual process, less control
+
+**Now (v2.0)**: Calendar-first workflow
+- **Sync Calendar first** - see all your meetings
+- **Automatic classification** - external meetings identified immediately
+- **Selective import** - choose exactly which meetings to import
+- **Visual indicators** - see which meetings have transcripts before importing
+- **Better matching** - find transcripts for meetings you care about
+
+### 🚀 Benefits
+
+1. **More Control**: See all external meetings before importing
+2. **Better Visibility**: Know which meetings have transcripts
+3. **Faster Workflow**: Sync calendar events once, import specific meetings
+4. **No Missed Calls**: Don't miss important external meetings
+5. **Flexible Date Ranges**: Sync any time period (last week, month, custom)
+
+---
+
+**Version**: 2.0  
 **Date**: January 5, 2026  
 **Status**: ✅ Complete and Tested
 

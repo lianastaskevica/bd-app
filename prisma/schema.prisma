@@ -63,6 +63,13 @@ model Call {
   aiStrengths         String[] @default([])
   aiAreasForImprovement String[] @default([])
   driveFileId         String?  @unique
+  
+  // External classification fields
+  isExternal          Boolean?  // null = unknown, true = external, false = internal
+  externalDomains     String[]  @default([]) // list of non-internal domains found
+  calendarEventId     String?   // Google Calendar event ID
+  classificationSource String?  // "calendar", "manual", "unknown"
+  
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   
@@ -74,6 +81,8 @@ model Call {
   @@index([organizer])
   @@index([callDate])
   @@index([driveFileId])
+  @@index([isExternal])
+  @@index([calendarEventId])
 }
 
 model GoogleIntegration {

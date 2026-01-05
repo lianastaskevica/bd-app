@@ -3,6 +3,7 @@ import { prisma } from './prisma';
 
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
 ];

@@ -11,6 +11,7 @@ interface CallFiltersProps {
     client?: string;
     organizer?: string;
     search?: string;
+    callType?: string;
   };
 }
 
@@ -40,7 +41,7 @@ export function CallFilters({ clients, organizers, currentFilters }: CallFilters
   };
 
   const hasFilters =
-    currentFilters.client || currentFilters.organizer || currentFilters.search;
+    currentFilters.client || currentFilters.organizer || currentFilters.search || currentFilters.callType;
 
   return (
     <div className={styles.filters}>
@@ -78,6 +79,17 @@ export function CallFilters({ clients, organizers, currentFilters }: CallFilters
             {organizer}
           </option>
         ))}
+      </select>
+
+      <select
+        className="input"
+        value={currentFilters.callType || ''}
+        onChange={(e) => updateFilter('callType', e.target.value)}
+      >
+        <option value="">All Call Types</option>
+        <option value="external">🌐 External Only</option>
+        <option value="internal">🏢 Internal Only</option>
+        <option value="unknown">❓ Unknown</option>
       </select>
 
       {hasFilters && (

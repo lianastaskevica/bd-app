@@ -84,12 +84,32 @@
   margin-bottom: var(--spacing-md);
   font-size: 13px;
   color: var(--text-secondary);
+  flex-wrap: wrap;
 
   span {
     display: flex;
     align-items: center;
     gap: 6px;
   }
+}
+
+.externalBadge,
+.internalBadge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.externalBadge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.internalBadge {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
 }
 
 .callSummary {

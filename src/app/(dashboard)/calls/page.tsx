@@ -7,6 +7,7 @@ interface SearchParams {
   client?: string;
   organizer?: string;
   search?: string;
+  callType?: string; // 'external', 'internal', or 'unknown'
 }
 
 async function getCalls(searchParams: SearchParams) {
@@ -26,6 +27,16 @@ async function getCalls(searchParams: SearchParams) {
       { organizer: { contains: searchParams.search, mode: 'insensitive' } },
       { transcript: { contains: searchParams.search, mode: 'insensitive' } },
     ];
+  }
+
+  if (searchParams.callType) {
+    if (searchParams.callType === 'external') {
+      where.isExternal = true;
+    } else if (searchParams.callType === 'internal') {
+      where.isExternal = false;
+    } else if (searchParams.callType === 'unknown') {
+      where.isExternal = null;
+    }
   }
 
   const [calls, clients, organizers] = await Promise.all([
@@ -110,6 +121,11 @@ export default async function CallsPage({
                 <span>📅 {new Date(call.callDate).toLocaleDateString()}</span>
                 <span>👤 {call.organizer}</span>
                 <span>👥 {call.participants.length} participants</span>
+                {call.isExternal !== null && (
+                  <span className={call.isExternal ? styles.externalBadge : styles.internalBadge}>
+                    {call.isExternal ? '🌐 External' : '🏢 Internal'}
+                  </span>
+                )}
               </div>
 
               <p className={styles.callSummary}>

@@ -59,6 +59,34 @@ export default async function CallDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className={styles.sidebar}>
+          {call.isExternal !== null && (
+            <div className={styles.card}>
+              <h3 className={styles.cardTitle}>
+                {call.isExternal ? '🌐 External Call' : '🏢 Internal Call'}
+              </h3>
+              <div className={styles.classificationInfo}>
+                <div className={styles.classificationStatus}>
+                  <span className={call.isExternal ? styles.externalBadge : styles.internalBadge}>
+                    {call.isExternal ? 'External Meeting' : 'Internal Meeting'}
+                  </span>
+                </div>
+                {call.isExternal && call.externalDomains.length > 0 && (
+                  <div className={styles.externalDomains}>
+                    <div className={styles.domainsLabel}>External Domains:</div>
+                    {call.externalDomains.map((domain, i) => (
+                      <div key={i} className={styles.domainTag}>{domain}</div>
+                    ))}
+                  </div>
+                )}
+                {call.classificationSource && (
+                  <div className={styles.classificationSource}>
+                    Source: {call.classificationSource === 'calendar' ? '📅 Google Calendar' : call.classificationSource}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className={styles.card}>
             <h3 className={styles.cardTitle}>👤 Organizer</h3>
             <div className={styles.organizerInfo}>

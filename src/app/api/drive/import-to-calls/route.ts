@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { analyzeCall } from '@/lib/openai';
 import OpenAI from 'openai';
+import { findAndClassifyCalendarEvent } from '@/lib/calendar-match';
 
 // Helper function to parse participants from transcript text
 function parseParticipants(text: string): string[] {
@@ -216,11 +217,48 @@ export async function POST(request: NextRequest) {
         const clientName = cleanFileName(file.name);
         const callDate = extractCallDate(file.rawText, file.modifiedTime);
         
-        // Try regex parsing first, then AI fallback
-        let participants = parseParticipants(file.rawText);
+        // Try to match with Calendar event for participant emails
+        let calendarEvent = null;
+        let participants: string[] = [];
+        let isExternal: boolean | null = null;
+        let externalDomains: string[] = [];
+        let calendarEventId: string | null = null;
+        let classificationSource = 'unknown';
+
+        try {
+          calendarEvent = await findAndClassifyCalendarEvent(session.userId, callDate);
+          
+          if (calendarEvent) {
+            // Use calendar participants (which include emails)
+            const allParticipants = [
+              ...(calendarEvent.organizer ? [calendarEvent.organizer] : []),
+              ...calendarEvent.attendees,
+            ];
+            participants = allParticipants.filter(Boolean);
+            
+            // Use calendar classification
+            isExternal = calendarEvent.classification.isExternal;
+            externalDomains = calendarEvent.classification.externalDomains;
+            calendarEventId = calendarEvent.id;
+            classificationSource = calendarEvent.classification.classificationSource;
+            
+            console.log(`Matched calendar event for ${file.name}:`, {
+              eventId: calendarEvent.id,
+              isExternal,
+              participantCount: participants.length,
+            });
+          }
+        } catch (error: any) {
+          console.warn(`Could not match calendar event for ${file.name}:`, error.message);
+        }
+
+        // Fallback: Try regex parsing from transcript if no calendar match
         if (participants.length === 0) {
-          // Use AI as fallback
-          participants = await extractParticipantsWithAI(file.rawText);
+          participants = parseParticipants(file.rawText);
+          if (participants.length === 0) {
+            // Use AI as last resort
+            participants = await extractParticipantsWithAI(file.rawText);
+          }
         }
 
         // Run AI analysis
@@ -252,6 +290,11 @@ export async function POST(request: NextRequest) {
             aiStrengths: analysis.strengths,
             aiAreasForImprovement: analysis.areasForImprovement,
             driveFileId: file.id,
+            // External classification fields
+            isExternal,
+            externalDomains,
+            calendarEventId,
+            classificationSource,
           },
         });
 

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Analyze the call with AI
-    const analysis = await analyzeCall(transcript, prompt.content);
+    const analysis = await analyzeCall(transcript, prompt.analysisPrompt, prompt.ratingPrompt);
 
     // Find or create category based on AI analysis
     let category = await prisma.category.findFirst({

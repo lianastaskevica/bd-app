@@ -33,7 +33,7 @@ export async function POST(
     }
 
     // Re-analyze the call
-    const analysis = await analyzeCall(call.transcript, prompt.content);
+    const analysis = await analyzeCall(call.transcript, prompt.analysisPrompt, prompt.ratingPrompt);
 
     // Find or create category
     let category = await prisma.category.findFirst({

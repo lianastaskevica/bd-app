@@ -7,11 +7,11 @@ export async function POST(request: NextRequest) {
     await requireAuth();
 
     const body = await request.json();
-    const { name, content, isActive, categoryId } = body;
+    const { name, content, analysisPrompt, ratingPrompt, isActive, categoryId } = body;
 
-    if (!name || !content) {
+    if (!name || (!analysisPrompt && !content) || (!ratingPrompt && !content)) {
       return NextResponse.json(
-        { error: 'Name and content are required' },
+        { error: 'Name, analysis prompt, and rating prompt are required' },
         { status: 400 }
       );
     }
@@ -26,7 +26,9 @@ export async function POST(request: NextRequest) {
     const prompt = await prisma.prompt.create({
       data: {
         name,
-        content,
+        content: content || analysisPrompt, // Keep for backwards compatibility
+        analysisPrompt: analysisPrompt || content,
+        ratingPrompt: ratingPrompt || content,
         isActive: isActive !== undefined ? isActive : false,
         categoryId: categoryId || null,
       },

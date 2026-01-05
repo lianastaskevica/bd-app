@@ -23,7 +23,9 @@ export async function PATCH(
       where: { id },
       data: {
         name: body.name,
-        content: body.content,
+        content: body.content || body.analysisPrompt, // Keep for backwards compatibility
+        analysisPrompt: body.analysisPrompt || body.content,
+        ratingPrompt: body.ratingPrompt || body.content,
         isActive: body.isActive,
         categoryId: body.categoryId || null,
       },

@@ -15,7 +15,8 @@ export interface CallAnalysisResult {
 
 export async function analyzeCall(
   transcript: string,
-  promptContent: string
+  analysisPrompt: string,
+  ratingPrompt: string
 ): Promise<CallAnalysisResult> {
   const systemPrompt = `You are a professional call analyst. Your task is to analyze call transcripts and provide structured feedback.
   
@@ -40,11 +41,18 @@ The rating should be a number between 1 and 10.
 The sentiment should be one of: "Positive", "Neutral", or "Negative".
 Provide 2-4 specific strengths and 1-3 areas for improvement.`;
 
+  const userPrompt = `${analysisPrompt}
+
+${ratingPrompt}
+
+Transcript:
+${transcript}`;
+
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: `${promptContent}\n\nTranscript:\n${transcript}` },
+      { role: 'user', content: userPrompt },
     ],
     response_format: { type: 'json_object' },
     temperature: 0.7,

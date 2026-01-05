@@ -37,17 +37,20 @@ model Category {
 }
 
 model Prompt {
-  id          String    @id @default(cuid())
-  name        String
-  content     String    @db.Text
-  isActive    Boolean   @default(true)
-  categoryId  String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  name              String
+  content           String    @db.Text  // Legacy field, kept for backwards compatibility
+  analysisPrompt    String    @db.Text  // Prompt for analyzing call content
+  ratingPrompt      String    @db.Text  // Prompt for rating criteria
+  isActive          Boolean   @default(true)
+  categoryId        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category          Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   
   @@index([categoryId])
+  @@index([isActive])
 }
 
 model Call {

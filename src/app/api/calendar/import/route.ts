@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         const clientName = event.summary || transcriptFile.name.replace(/\.(txt|pdf|docx?)$/i, '');
 
         // Run AI analysis
-        const analysis = await analyzeCall(transcriptFile.rawText, prompt.content);
+        const analysis = await analyzeCall(transcriptFile.rawText, prompt.analysisPrompt, prompt.ratingPrompt);
 
         // Find or create category
         let category = await prisma.category.findFirst({

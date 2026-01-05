@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Run AI analysis
-        const analysis = await analyzeCall(file.rawText, prompt.content);
+        const analysis = await analyzeCall(file.rawText, prompt.analysisPrompt, prompt.ratingPrompt);
 
         // Find or create category
         let category = await prisma.category.findFirst({

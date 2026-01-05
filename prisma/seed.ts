@@ -49,15 +49,20 @@ async function main() {
     create: {
       id: 'default-prompt',
       name: 'Default Call Analysis',
-      content: `Analyze this client call transcript and provide:
+      content: `Analyze this client call transcript and provide a comprehensive summary.`,
+      analysisPrompt: `Analyze this client call transcript and provide:
+- A comprehensive summary of the discussion
+- Key decisions made during the call
+- Action items and next steps
+- Overall tone and engagement level`,
+      ratingPrompt: `Rate this call on a scale of 1-10 based on:
+- Communication clarity and structure
+- Client engagement and interest level
+- Problem resolution and value provided
+- Professionalism and rapport building
+- Outcome achievement and next steps
 
-1. A brief summary of how the call went (2-3 sentences)
-2. An overall rating from 1-10 based on:
-   - Communication clarity
-   - Client engagement
-   - Problem resolution
-   - Professionalism
-   - Outcome achievement`,
+Provide 2-4 specific strengths and 1-3 areas for improvement.`,
       isActive: true,
     },
   });

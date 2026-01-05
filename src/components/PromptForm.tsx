@@ -8,6 +8,8 @@ interface Prompt {
   id: string;
   name: string;
   content: string;
+  analysisPrompt: string;
+  ratingPrompt: string;
   isActive: boolean;
 }
 
@@ -21,7 +23,8 @@ export function PromptForm({
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: prompt?.name || '',
-    content: prompt?.content || '',
+    analysisPrompt: prompt?.analysisPrompt || '',
+    ratingPrompt: prompt?.ratingPrompt || '',
     isActive: prompt?.isActive || false,
   });
 
@@ -68,21 +71,42 @@ export function PromptForm({
       </div>
 
       <div className={styles.field}>
-        <label>Prompt Content *</label>
+        <label>Analysis Prompt *</label>
+        <p className={styles.helpText}>
+          Instructions for AI to analyze the call content, extract key points, and provide summary
+        </p>
         <textarea
           className={`input ${styles.textarea}`}
-          rows={12}
-          value={formData.content}
-          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+          rows={8}
+          value={formData.analysisPrompt}
+          onChange={(e) => setFormData({ ...formData, analysisPrompt: e.target.value })}
           placeholder="Analyze this client call transcript and provide:
+- A comprehensive summary of the discussion
+- Key decisions made during the call
+- Action items and next steps
+- Overall tone and engagement level"
+          required
+        />
+      </div>
 
-1. A brief summary of how the call went (2-3 sentences)
-2. An overall rating from 1-10 based on:
-   - Communication clarity
-   - Client engagement
-   - Problem resolution
-   - Professionalism
-   - Outcome achievement"
+      <div className={styles.field}>
+        <label>Rating Prompt *</label>
+        <p className={styles.helpText}>
+          Criteria for AI to rate the call quality (1-10 scale) and identify strengths/improvements
+        </p>
+        <textarea
+          className={`input ${styles.textarea}`}
+          rows={8}
+          value={formData.ratingPrompt}
+          onChange={(e) => setFormData({ ...formData, ratingPrompt: e.target.value })}
+          placeholder="Rate this call on a scale of 1-10 based on:
+- Communication clarity and structure
+- Client engagement and interest level
+- Problem resolution and value provided
+- Professionalism and rapport building
+- Outcome achievement and next steps
+
+Provide 2-4 specific strengths and 1-3 areas for improvement."
           required
         />
       </div>

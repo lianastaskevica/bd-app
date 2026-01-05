@@ -41,10 +41,23 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // Get counts for UI
+    // Build where clause for counts (same as events, but without filter-specific conditions)
+    const countWhere: any = {
+      userId: session.userId,
+    };
+
+    // Apply same date range filter to counts
+    if (startDate && endDate) {
+      countWhere.startTime = {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
+      };
+    }
+
+    // Get counts for UI - filtered by date range
     const counts = await prisma.calendarEvent.groupBy({
       by: ['isExternal', 'imported'],
-      where: { userId: session.userId },
+      where: countWhere,
       _count: true,
     });
 

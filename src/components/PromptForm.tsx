@@ -20,17 +20,21 @@ export function PromptForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     name: prompt?.name || '',
     analysisPrompt: prompt?.analysisPrompt || '',
     ratingPrompt: prompt?.ratingPrompt || '',
     isActive: prompt?.isActive || false,
   });
+  const [recalculateOnSave, setRecalculateOnSave] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -49,8 +53,39 @@ export function PromptForm({
         throw new Error(data.error || 'Failed to save prompt');
       }
 
-      router.push('/prompts');
-      router.refresh();
+      // If updating an existing prompt and recalculation is requested
+      if (prompt && recalculateOnSave) {
+        setLoading(false);
+        setRecalculating(true);
+        setSuccess('Prompt saved! Recalculating existing calls...');
+
+        try {
+          const recalcResponse = await fetch(`/api/prompts/${prompt.id}/recalculate`, {
+            method: 'POST',
+          });
+
+          const recalcData = await recalcResponse.json();
+
+          if (!recalcResponse.ok) {
+            throw new Error(recalcData.error || 'Failed to recalculate');
+          }
+
+          setSuccess(
+            `Prompt saved and ${recalcData.results.success} calls recalculated successfully!`
+          );
+          
+          setTimeout(() => {
+            router.push('/prompts');
+            router.refresh();
+          }, 2000);
+        } catch (recalcErr: any) {
+          setError(`Prompt saved, but recalculation failed: ${recalcErr.message}`);
+          setRecalculating(false);
+        }
+      } else {
+        router.push('/prompts');
+        router.refresh();
+      }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
       setLoading(false);
@@ -120,9 +155,35 @@ Provide 2-4 specific strengths and 1-3 areas for improvement."
           />
           <span>Set as active prompt (only one prompt can be active at a time)</span>
         </label>
+
+        {prompt && (
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={recalculateOnSave}
+              onChange={(e) => setRecalculateOnSave(e.target.checked)}
+            />
+            <span>Recalculate all existing calls with updated prompt</span>
+          </label>
+        )}
       </div>
 
+      {prompt && recalculateOnSave && (
+        <div className={styles.warning}>
+          ⚠️ <strong>Note:</strong> Recalculating all calls may take several minutes depending on
+          the number of calls. All calls will be re-analyzed with the updated prompt criteria.
+        </div>
+      )}
+
       {error && <div className="error">{error}</div>}
+      {success && <div className={styles.success}>{success}</div>}
+      
+      {recalculating && (
+        <div className={styles.progress}>
+          <div className={styles.spinner}></div>
+          <span>Recalculating calls... This may take a few minutes.</span>
+        </div>
+      )}
 
       <div className={styles.actions}>
         <button
@@ -133,8 +194,8 @@ Provide 2-4 specific strengths and 1-3 areas for improvement."
         >
           Cancel
         </button>
-        <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? 'Saving...' : prompt ? 'Update Prompt' : 'Create Prompt'}
+        <button type="submit" className="btn btn-primary" disabled={loading || recalculating}>
+          {recalculating ? 'Recalculating...' : loading ? 'Saving...' : prompt ? 'Update Prompt' : 'Create Prompt'}
         </button>
       </div>
     </form>

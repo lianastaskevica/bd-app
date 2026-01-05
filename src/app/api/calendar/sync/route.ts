@@ -3,6 +3,54 @@ import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { fetchCalendarEvents } from '@/lib/calendar-match';
 import { classifyMeeting } from '@/lib/domain-classifier';
+import { CALENDAR_CONFIG } from '@/lib/config';
+
+// Helper to find transcript file for a calendar event
+async function findTranscriptForEvent(
+  userId: string,
+  event: any
+): Promise<string | null> {
+  try {
+    // Search for Drive files within time window of the event
+    const toleranceMs = CALENDAR_CONFIG.TIME_MATCH_WINDOW_MINUTES * 60 * 1000;
+    const searchStart = new Date(event.startTime.getTime() - toleranceMs);
+    const searchEnd = new Date(event.endTime.getTime() + toleranceMs);
+
+    const files = await prisma.driveFile.findMany({
+      where: {
+        userId,
+        status: 'imported',
+        modifiedTime: {
+          gte: searchStart,
+          lte: searchEnd,
+        },
+        rawText: {
+          not: null,
+        },
+      },
+      orderBy: { modifiedTime: 'desc' },
+      take: 1,
+    });
+
+    if (files.length === 0) return null;
+
+    // Return the closest match by time
+    const file = files[0];
+    const distance = Math.abs(
+      file.modifiedTime.getTime() - event.endTime.getTime()
+    );
+
+    // Only match if within tolerance
+    if (distance <= toleranceMs) {
+      return file.id;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error finding transcript:', error);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,6 +115,10 @@ export async function POST(request: NextRequest) {
       else if (isExternal === false) results.internalEvents++;
       else results.unknownEvents++;
 
+      // Check if transcript exists in Drive
+      const transcriptFileId = await findTranscriptForEvent(session.userId, event);
+      const hasTranscript = transcriptFileId !== null;
+
       // Upsert calendar event
       const existing = await prisma.calendarEvent.findUnique({
         where: {
@@ -97,6 +149,8 @@ export async function POST(request: NextRequest) {
           meetCode: event.meetCode,
           isExternal,
           externalDomains,
+          hasTranscript,
+          transcriptFileId,
           syncedAt: new Date(),
         },
         update: {
@@ -110,6 +164,8 @@ export async function POST(request: NextRequest) {
           meetCode: event.meetCode,
           isExternal,
           externalDomains,
+          hasTranscript,
+          transcriptFileId,
           syncedAt: new Date(),
         },
       });

@@ -233,6 +233,10 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
               This will fetch all Google Meet meetings from your calendar in the selected date range
               and identify external calls.
             </p>
+            <p style={{ marginTop: '8px', fontSize: '12px' }}>
+              💡 <strong>Tip:</strong> Make sure you've synced your Drive folder containing Meet transcripts 
+              (usually "Meet Recordings" folder) before syncing calendar events.
+            </p>
           </div>
         </div>
       )}
@@ -354,7 +358,10 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
                       )}
                       {!event.hasTranscript && (
                         <div className={styles.warning}>
-                          ⚠️ No transcript found - will be skipped during import
+                          ⚠️ No transcript found in Drive - will be skipped during import
+                          <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.8 }}>
+                            Make sure you've synced the Drive folder containing your Meet transcripts
+                          </div>
                         </div>
                       )}
                     </div>

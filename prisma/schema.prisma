@@ -26,14 +26,18 @@ model User {
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  color     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text // Category playbook definition
+  color       String?
+  isFixed     Boolean  @default(false) // True for the 8 predefined categories
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
-  calls     Call[]
-  prompts   Prompt[]
+  calls               Call[]   @relation("CallCategory")
+  predictedCalls      Call[]   @relation("CallPredictedCategory")
+  finalCategoryCalls  Call[]   @relation("CallCategoryFinal")
+  prompts             Prompt[]
 }
 
 model Prompt {
@@ -60,6 +64,7 @@ model Call {
   organizer           String
   participants        String[] @default([])
   transcript          String   @db.Text
+  transcriptSummary   String?  @db.Text // Condensed 400-800 word summary for AI classification
   categoryId          String?
   aiAnalysis          String?  @db.Text
   aiRating            Float?
@@ -67,6 +72,19 @@ model Call {
   aiStrengths         String[] @default([])
   aiAreasForImprovement String[] @default([])
   driveFileId         String?  @unique
+  
+  // AI Category Prediction fields
+  predictedCategoryId String?  // AI's category prediction
+  confidenceScore     Float?   // 0.0 to 1.0
+  categoryReasoning   String?  @db.Text // AI's reasoning bullets
+  topCandidates       Json?    // Top 3 candidate categories with scores
+  needsReview         Boolean  @default(false) // True if confidence 0.50-0.75
+  
+  // Human Override tracking
+  categoryFinalId     String?  // User's final category choice (if overridden)
+  wasOverridden       Boolean  @default(false)
+  overriddenAt        DateTime?
+  overriddenBy        String?  // User ID who overridden
   
   // External classification fields
   isExternal          Boolean?  // null = unknown, true = external, false = internal
@@ -83,7 +101,9 @@ model Call {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   
-  category            Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category            Category? @relation("CallCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+  predictedCategory   Category? @relation("CallPredictedCategory", fields: [predictedCategoryId], references: [id], onDelete: SetNull)
+  categoryFinal       Category? @relation("CallCategoryFinal", fields: [categoryFinalId], references: [id], onDelete: SetNull)
   driveFile           DriveFile? @relation(fields: [driveFileId], references: [id], onDelete: SetNull)
   
   @@index([clientName])
@@ -95,6 +115,9 @@ model Call {
   @@index([calendarEventId])
   @@index([meetCode])
   @@index([isDuplicate])
+  @@index([predictedCategoryId])
+  @@index([needsReview])
+  @@index([wasOverridden])
 }
 
 model GoogleIntegration {

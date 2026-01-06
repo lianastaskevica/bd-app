@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { analyzeCall } from '@/lib/openai';
+import { classifyCall } from '@/lib/category-classifier';
 import OpenAI from 'openai';
 import { findAndClassifyCalendarEvent } from '@/lib/calendar-match';
 
@@ -292,19 +293,35 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Run AI analysis
+        // Run AI analysis (for rating and feedback)
         const analysis = await analyzeCall(file.rawText, prompt.analysisPrompt, prompt.ratingPrompt);
 
-        // Find or create category
-        let category = await prisma.category.findFirst({
-          where: { name: analysis.category },
+        // Run AI category classification
+        const { transcriptSummary, prediction } = await classifyCall(clientName, file.rawText);
+
+        // Find the predicted category (must exist in our fixed 8 categories)
+        const predictedCategory = await prisma.category.findFirst({
+          where: { name: prediction.predictedCategory, isFixed: true },
         });
 
-        if (!category) {
-          category = await prisma.category.create({
-            data: { name: analysis.category },
-          });
+        if (!predictedCategory) {
+          throw new Error(`Invalid predicted category: ${prediction.predictedCategory}`);
         }
+
+        // Determine final category: auto-assign if confidence >= 0.75
+        let categoryId: string | null = null;
+        let categoryFinalId: string | null = null;
+
+        if (prediction.confidence >= 0.75) {
+          // Auto-assign with high confidence
+          categoryId = predictedCategory.id;
+          categoryFinalId = predictedCategory.id;
+        } else if (prediction.confidence >= 0.50) {
+          // Auto-assign but needs review
+          categoryId = predictedCategory.id;
+          categoryFinalId = predictedCategory.id;
+        }
+        // else: confidence < 0.50, don't assign category, show suggestions only
 
         // Create Call record
         await prisma.call.create({
@@ -314,7 +331,8 @@ export async function POST(request: NextRequest) {
             organizer,
             participants,
             transcript: file.rawText,
-            categoryId: category.id,
+            transcriptSummary,
+            categoryId,
             aiAnalysis: analysis.summary,
             aiRating: analysis.rating,
             aiSentiment: analysis.sentiment,
@@ -329,6 +347,14 @@ export async function POST(request: NextRequest) {
             // Deduplication tracking
             meetCode,
             isDuplicate: false,
+            // AI Category Prediction fields
+            predictedCategoryId: predictedCategory.id,
+            confidenceScore: prediction.confidence,
+            categoryReasoning: prediction.reasoning.join('\n'),
+            topCandidates: prediction.topCandidates,
+            needsReview: prediction.needsReview,
+            categoryFinalId,
+            wasOverridden: false,
           },
         });
 

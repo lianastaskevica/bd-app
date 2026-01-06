@@ -4,10 +4,16 @@ import Link from 'next/link';
 import styles from './detail.module.scss';
 import { CallActions } from '@/components/CallActions';
 import { CallDetailTabs } from '@/components/CallDetailTabs';
+import { CategoryOverride } from '@/components/CategoryOverride';
 
 async function getCall(id: string) {
   const call = await prisma.call.findUnique({
     where: { id },
+    include: {
+      category: true,
+      predictedCategory: true,
+      categoryFinal: true,
+    },
   });
 
   if (!call) {
@@ -17,9 +23,17 @@ async function getCall(id: string) {
   return call;
 }
 
+async function getCategories() {
+  return await prisma.category.findMany({
+    where: { isFixed: true },
+    orderBy: { name: 'asc' },
+  });
+}
+
 export default async function CallDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const call = await getCall(id);
+  const categories = await getCategories();
 
   return (
     <div className={styles.detailPage}>
@@ -85,6 +99,10 @@ export default async function CallDetailPage({ params }: { params: Promise<{ id:
                 )}
               </div>
             </div>
+          )}
+
+          {call.predictedCategory && (
+            <CategoryOverride call={call} categories={categories} />
           )}
 
           <div className={styles.card}>

@@ -41,25 +41,20 @@ npx prisma migrate deploy
 unset DATABASE_URL
 ```
 
-**Option C: Add Migration Script to package.json (Automated)**
+**Important: Migrations Must Be Run Manually**
 
-Already done! Your `vercel-build` script runs migrations automatically:
+Migrations are NOT run automatically during build (to avoid build failures).
 
-```json
-{
-  "scripts": {
-    "vercel-build": "prisma generate && prisma migrate deploy && next build"
-  }
-}
-```
-
-This means migrations should run automatically on each deployment. However, if you see errors, manually run:
+After each successful deployment, you MUST manually run migrations:
 
 ```bash
-# In Vercel dashboard > Project > Settings > Functions
-# Or via Vercel CLI:
-vercel env pull
-source .env
+# Via Vercel CLI:
+vercel env pull .env.production
+source .env.production
+npx prisma migrate deploy
+
+# Or set DATABASE_URL directly:
+export DATABASE_URL="your-production-db-url"
 npx prisma migrate deploy
 ```
 

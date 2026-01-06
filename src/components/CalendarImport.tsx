@@ -16,6 +16,8 @@ interface CalendarEvent {
   externalDomains: string[];
   imported: boolean;
   hasTranscript: boolean;
+  isDuplicate: boolean;
+  primaryUserId: string | null;
 }
 
 interface CalendarImportProps {
@@ -304,33 +306,39 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
               </div>
 
               <div className={styles.eventsList}>
-                {events.map((event) => (
-                  <div
-                    key={event.id}
-                    className={`${styles.eventCard} ${
-                      selectedEvents.has(event.id) ? styles.selected : ''
-                    }`}
-                    onClick={() => toggleEvent(event.id)}
-                  >
-                    <div className={styles.checkbox}>
-                      <input
-                        type="checkbox"
-                        checked={selectedEvents.has(event.id)}
-                        onChange={() => {}}
-                      />
-                    </div>
-                    <div className={styles.eventContent}>
-                      <div className={styles.eventHeader}>
-                        <h4 className={styles.eventTitle}>
-                          {event.summary || 'Untitled Meeting'}
-                        </h4>
-                        {event.isExternal && (
-                          <span className={styles.externalBadge}>🌐 External</span>
-                        )}
-                        {event.hasTranscript && (
-                          <span className={styles.transcriptBadge}>📄 Transcript Found</span>
-                        )}
+                {events.map((event) => {
+                  const isDisabled = event.isDuplicate || !event.hasTranscript;
+                  return (
+                    <div
+                      key={event.id}
+                      className={`${styles.eventCard} ${
+                        selectedEvents.has(event.id) ? styles.selected : ''
+                      } ${isDisabled ? styles.disabled : ''}`}
+                      onClick={() => !isDisabled && toggleEvent(event.id)}
+                    >
+                      <div className={styles.checkbox}>
+                        <input
+                          type="checkbox"
+                          checked={selectedEvents.has(event.id)}
+                          disabled={isDisabled}
+                          onChange={() => {}}
+                        />
                       </div>
+                      <div className={styles.eventContent}>
+                        <div className={styles.eventHeader}>
+                          <h4 className={styles.eventTitle}>
+                            {event.summary || 'Untitled Meeting'}
+                          </h4>
+                          {event.isDuplicate && (
+                            <span className={styles.duplicateBadge}>🔄 Duplicate</span>
+                          )}
+                          {event.isExternal && !event.isDuplicate && (
+                            <span className={styles.externalBadge}>🌐 External</span>
+                          )}
+                          {event.hasTranscript && !event.isDuplicate && (
+                            <span className={styles.transcriptBadge}>📄 Transcript Found</span>
+                          )}
+                        </div>
                       <div className={styles.eventMeta}>
                         <span>
                           📅 {new Date(event.startTime).toLocaleDateString()} at{' '}
@@ -352,14 +360,20 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
                           ))}
                         </div>
                       )}
-                      {!event.hasTranscript && (
+                      {event.isDuplicate && (
+                        <div className={styles.duplicateWarning}>
+                          🔄 This meeting has already been imported by another team member - skipping to avoid duplicates
+                        </div>
+                      )}
+                      {!event.hasTranscript && !event.isDuplicate && (
                         <div className={styles.warning}>
                           ⚠️ No transcript found - will be skipped during import
                         </div>
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

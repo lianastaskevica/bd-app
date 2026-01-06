@@ -264,6 +264,29 @@ export async function POST(request: NextRequest) {
       const transcriptFileId = await findTranscriptForEvent(session.userId, event);
       const hasTranscript = transcriptFileId !== null;
 
+      // Check for duplicates - find if another user already synced this meeting
+      let isDuplicate = false;
+      let primaryEventId: string | null = null;
+      let primaryUserId: string | null = null;
+
+      if (event.meetCode) {
+        // Search for existing event with same meetCode from a different user
+        const existingEvent = await prisma.calendarEvent.findFirst({
+          where: {
+            meetCode: event.meetCode,
+            startTime: event.startTime, // Exact match for startTime
+            userId: { not: session.userId }, // Different user
+          },
+          orderBy: { syncedAt: 'asc' }, // Get the earliest synced one
+        });
+
+        if (existingEvent) {
+          isDuplicate = true;
+          primaryEventId = existingEvent.id;
+          primaryUserId = existingEvent.userId;
+        }
+      }
+
       // Upsert calendar event
       const existing = await prisma.calendarEvent.findUnique({
         where: {
@@ -296,6 +319,9 @@ export async function POST(request: NextRequest) {
           externalDomains,
           hasTranscript,
           transcriptFileId,
+          isDuplicate,
+          primaryEventId,
+          primaryUserId,
           syncedAt: new Date(),
         },
         update: {
@@ -311,6 +337,9 @@ export async function POST(request: NextRequest) {
           externalDomains,
           hasTranscript,
           transcriptFileId,
+          isDuplicate,
+          primaryEventId,
+          primaryUserId,
           syncedAt: new Date(),
         },
       });

@@ -74,6 +74,12 @@ model Call {
   calendarEventId     String?   // Google Calendar event ID
   classificationSource String?  // "calendar", "manual", "unknown"
   
+  // Duplicate detection fields
+  meetCode            String?   // Google Meet code for deduplication
+  isDuplicate         Boolean   @default(false) // True if this is a duplicate of another call
+  primaryCallId       String?   // Reference to the first imported call for this meeting
+  duplicateOfUserId   String?   // User who imported the primary call
+  
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   
@@ -87,6 +93,8 @@ model Call {
   @@index([driveFileId])
   @@index([isExternal])
   @@index([calendarEventId])
+  @@index([meetCode])
+  @@index([isDuplicate])
 }
 
 model GoogleIntegration {
@@ -172,6 +180,11 @@ model CalendarEvent {
   imported            Boolean  @default(false)
   importedCallId      String?  // Link to Call if imported
   
+  // Duplicate detection
+  isDuplicate         Boolean  @default(false) // True if another user already synced this meeting
+  primaryEventId      String?  // Reference to the first synced event for this meeting
+  primaryUserId       String?  // User who synced the primary event
+  
   // Sync metadata
   syncedAt            DateTime @default(now())
   createdAt           DateTime @default(now())
@@ -185,5 +198,7 @@ model CalendarEvent {
   @@index([isExternal])
   @@index([imported])
   @@index([hasTranscript])
+  @@index([meetCode])
+  @@index([isDuplicate])
 }
 

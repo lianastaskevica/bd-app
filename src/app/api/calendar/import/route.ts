@@ -95,6 +95,42 @@ export async function POST(request: NextRequest) {
     // Process each calendar event
     for (const event of calendarEvents) {
       try {
+        // Check if this is a duplicate event
+        if (event.isDuplicate) {
+          results.failed++;
+          results.errors.push(
+            `${event.summary || 'Untitled'}: Duplicate - already imported by another team member`
+          );
+          continue;
+        }
+
+        // Check if a call already exists for this meeting (by meetCode + date)
+        if (event.meetCode) {
+          const existingCall = await prisma.call.findFirst({
+            where: {
+              meetCode: event.meetCode,
+              callDate: event.startTime,
+            },
+          });
+
+          if (existingCall) {
+            // Mark this event as duplicate and skip
+            await prisma.calendarEvent.update({
+              where: { id: event.id },
+              data: { 
+                isDuplicate: true,
+                primaryEventId: existingCall.id,
+              },
+            });
+
+            results.failed++;
+            results.errors.push(
+              `${event.summary || 'Untitled'}: Duplicate - call already imported by another user`
+            );
+            continue;
+          }
+        }
+
         // Find matching transcript file
         const transcriptFile = await findTranscriptForEvent(session.userId, event);
 
@@ -143,6 +179,9 @@ export async function POST(request: NextRequest) {
             externalDomains: event.externalDomains,
             calendarEventId: event.googleEventId,
             classificationSource: 'calendar',
+            // Deduplication tracking
+            meetCode: event.meetCode,
+            isDuplicate: false,
           },
         });
 

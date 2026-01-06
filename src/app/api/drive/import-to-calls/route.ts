@@ -224,6 +224,7 @@ export async function POST(request: NextRequest) {
         let externalDomains: string[] = [];
         let calendarEventId: string | null = null;
         let classificationSource = 'unknown';
+        let meetCode: string | null = null;
 
         try {
           calendarEvent = await findAndClassifyCalendarEvent(session.userId, callDate);
@@ -241,6 +242,7 @@ export async function POST(request: NextRequest) {
             externalDomains = calendarEvent.classification.externalDomains;
             calendarEventId = calendarEvent.id;
             classificationSource = calendarEvent.classification.classificationSource;
+            meetCode = calendarEvent.meetCode || null;
             
             console.log(`Matched calendar event for ${file.name}:`, {
               eventId: calendarEvent.id,
@@ -258,6 +260,35 @@ export async function POST(request: NextRequest) {
           if (participants.length === 0) {
             // Use AI as last resort
             participants = await extractParticipantsWithAI(file.rawText);
+          }
+        }
+
+        // Check for duplicates before importing
+        if (meetCode) {
+          const existingCall = await prisma.call.findFirst({
+            where: {
+              meetCode,
+              callDate,
+            },
+          });
+
+          if (existingCall) {
+            // Skip this call - it's already been imported
+            results.failed++;
+            results.errors.push(
+              `${file.name}: Duplicate - already imported by another team member`
+            );
+            
+            // Update file status to show it was skipped
+            await prisma.driveFile.update({
+              where: { id: file.id },
+              data: {
+                status: 'skipped',
+                errorMessage: 'Duplicate call - already imported by another user',
+              },
+            });
+            
+            continue;
           }
         }
 
@@ -295,6 +326,9 @@ export async function POST(request: NextRequest) {
             externalDomains,
             calendarEventId,
             classificationSource,
+            // Deduplication tracking
+            meetCode,
+            isDuplicate: false,
           },
         });
 

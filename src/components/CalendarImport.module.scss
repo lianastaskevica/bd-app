@@ -217,6 +217,17 @@
   white-space: nowrap;
 }
 
+.duplicateBadge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(156, 163, 175, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(156, 163, 175, 0.3);
+  white-space: nowrap;
+}
+
 .eventMeta {
   display: flex;
   align-items: center;
@@ -259,6 +270,25 @@
   border-radius: var(--radius-sm);
   font-size: 12px;
   color: #fb923c;
+}
+
+.duplicateWarning {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(156, 163, 175, 0.1);
+  border: 1px solid rgba(156, 163, 175, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.eventCard.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  
+  &:hover {
+    border-color: var(--border-color);
+  }
 }
 
 .empty {

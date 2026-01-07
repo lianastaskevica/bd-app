@@ -1,47 +1,20 @@
 import { prisma } from '@/lib/prisma';
 import styles from './dashboard.module.scss';
-import { RatingByClient, RatingByOrganizer, RatingByCategory } from '@/components/Charts';
+import { RatingByCategory } from '@/components/Charts';
 
 async function getDashboardStats() {
-  const [totalCalls, calls] = await Promise.all([
-    prisma.call.count(),
-    prisma.call.findMany(),
-  ]);
+  const totalCalls = await prisma.call.count();
+  
+  const calls = await prisma.call.findMany({
+    select: {
+      aiRating: true,
+    },
+  });
 
-  const analyzedCalls = calls.filter((call) => call.aiAnalysis).length;
   const avgRating =
     calls.length > 0
       ? calls.reduce((sum, call) => sum + (call.aiRating || 0), 0) / calls.length
       : 0;
-
-  // Rating by call title (top rated calls)
-  const ratingByClient = calls
-    .filter((call) => call.aiRating)
-    .map((call) => ({
-      name: call.callTitle,
-      rating: call.aiRating || 0,
-    }))
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 10);
-
-  // Rating by organizer
-  const organizerRatings = new Map<string, { total: number; count: number }>();
-  calls.forEach((call) => {
-    if (call.aiRating) {
-      const existing = organizerRatings.get(call.organizer) || { total: 0, count: 0 };
-      organizerRatings.set(call.organizer, {
-        total: existing.total + call.aiRating,
-        count: existing.count + 1,
-      });
-    }
-  });
-
-  const ratingByOrganizer = Array.from(organizerRatings.entries())
-    .map(([name, { total, count }]) => ({
-      name,
-      rating: total / count,
-    }))
-    .sort((a, b) => b.rating - a.rating);
 
   // Rating by category
   const categoryRatings = new Map<string, { total: number; count: number; name: string }>();
@@ -75,10 +48,7 @@ async function getDashboardStats() {
 
   return {
     totalCalls,
-    analyzedCalls,
     avgRating,
-    ratingByClient,
-    ratingByOrganizer,
     ratingByCategory,
   };
 }
@@ -107,27 +77,11 @@ export default async function DashboardPage() {
         </div>
 
         <div className={styles.metric}>
-          <div className={styles.metricIcon} style={{ background: 'var(--info)' }}>
-            📊
-          </div>
-          <div className={styles.metricContent}>
-            <div className={styles.metricLabel}>Analyzed</div>
-            <div className={styles.metricValue}>{stats.analyzedCalls}</div>
-            <div className={styles.metricSubtext}>
-              {stats.totalCalls > 0
-                ? Math.round((stats.analyzedCalls / stats.totalCalls) * 100)
-                : 0}
-              % of total
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.metric}>
           <div className={styles.metricIcon} style={{ background: 'var(--success)' }}>
             📈
           </div>
           <div className={styles.metricContent}>
-            <div className={styles.metricLabel}>Avg Rating</div>
+            <div className={styles.metricLabel}>Average Rating</div>
             <div className={styles.metricValue}>{stats.avgRating.toFixed(1)}</div>
             <div className={styles.metricSubtext}>out of 10</div>
           </div>
@@ -135,14 +89,6 @@ export default async function DashboardPage() {
       </div>
 
       <div className={styles.charts}>
-        <div className={styles.chart}>
-          <RatingByClient data={stats.ratingByClient} />
-        </div>
-
-        <div className={styles.chart}>
-          <RatingByOrganizer data={stats.ratingByOrganizer} />
-        </div>
-
         <div className={styles.chart}>
           <RatingByCategory data={stats.ratingByCategory} />
         </div>

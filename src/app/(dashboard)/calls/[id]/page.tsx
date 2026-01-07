@@ -43,7 +43,7 @@ export default async function CallDetailPage({ params }: { params: Promise<{ id:
 
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <h1 className={styles.title}>{call.clientName}</h1>
+          <h1 className={styles.title}>{call.callTitle}</h1>
           <div className={styles.meta}>
             <span>
               📅 {new Date(call.callDate).toLocaleDateString('en-US', {

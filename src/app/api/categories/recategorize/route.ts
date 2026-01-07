@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       },
       select: {
         id: true,
-        clientName: true,
+        callTitle: true,
         transcript: true,
         transcriptSummary: true,
       },
@@ -38,12 +38,12 @@ export async function POST(request: NextRequest) {
         if (transcriptSummary) {
           // Re-run classification with existing summary
           const { classifyCall: classify } = await import('@/lib/category-classifier');
-          const result = await classifyCall(call.clientName, call.transcript);
+          const result = await classifyCall(call.callTitle, call.transcript);
           transcriptSummary = result.transcriptSummary;
           prediction = result.prediction;
         } else {
           // Generate new summary and classification
-          const result = await classifyCall(call.clientName, call.transcript);
+          const result = await classifyCall(call.callTitle, call.transcript);
           transcriptSummary = result.transcriptSummary;
           prediction = result.prediction;
         }

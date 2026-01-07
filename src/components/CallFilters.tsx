@@ -10,7 +10,6 @@ interface Category {
 }
 
 interface CallFiltersProps {
-  clients: string[];
   organizers: string[];
   categories: Category[];
   currentFilters: {
@@ -22,7 +21,7 @@ interface CallFiltersProps {
   };
 }
 
-export function CallFilters({ clients, organizers, categories, currentFilters }: CallFiltersProps) {
+export function CallFilters({ organizers, categories, currentFilters }: CallFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(currentFilters.search || '');
@@ -61,19 +60,6 @@ export function CallFilters({ clients, organizers, categories, currentFilters }:
           onChange={(e) => setSearch(e.target.value)}
         />
       </form>
-
-      <select
-        className="input"
-        value={currentFilters.client || ''}
-        onChange={(e) => updateFilter('client', e.target.value)}
-      >
-        <option value="">All Clients</option>
-        {clients.map((client) => (
-          <option key={client} value={client}>
-            {client}
-          </option>
-        ))}
-      </select>
 
       <select
         className="input"

@@ -59,7 +59,7 @@ model Prompt {
 
 model Call {
   id                  String   @id @default(cuid())
-  clientName          String
+  callTitle           String
   callDate            DateTime
   organizer           String
   participants        String[] @default([])
@@ -106,7 +106,7 @@ model Call {
   categoryFinal       Category? @relation("CallCategoryFinal", fields: [categoryFinalId], references: [id], onDelete: SetNull)
   driveFile           DriveFile? @relation(fields: [driveFileId], references: [id], onDelete: SetNull)
   
-  @@index([clientName])
+  @@index([callTitle])
   @@index([categoryId])
   @@index([organizer])
   @@index([callDate])

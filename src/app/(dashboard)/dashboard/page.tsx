@@ -14,26 +14,15 @@ async function getDashboardStats() {
       ? calls.reduce((sum, call) => sum + (call.aiRating || 0), 0) / calls.length
       : 0;
 
-  const uniqueClients = new Set(calls.map((call) => call.clientName)).size;
-
-  // Rating by client
-  const clientRatings = new Map<string, { total: number; count: number }>();
-  calls.forEach((call) => {
-    if (call.aiRating) {
-      const existing = clientRatings.get(call.clientName) || { total: 0, count: 0 };
-      clientRatings.set(call.clientName, {
-        total: existing.total + call.aiRating,
-        count: existing.count + 1,
-      });
-    }
-  });
-
-  const ratingByClient = Array.from(clientRatings.entries())
-    .map(([name, { total, count }]) => ({
-      name,
-      rating: total / count,
+  // Rating by call title (top rated calls)
+  const ratingByClient = calls
+    .filter((call) => call.aiRating)
+    .map((call) => ({
+      name: call.callTitle,
+      rating: call.aiRating || 0,
     }))
-    .sort((a, b) => b.rating - a.rating);
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 10);
 
   // Rating by organizer
   const organizerRatings = new Map<string, { total: number; count: number }>();
@@ -88,7 +77,6 @@ async function getDashboardStats() {
     totalCalls,
     analyzedCalls,
     avgRating,
-    uniqueClients,
     ratingByClient,
     ratingByOrganizer,
     ratingByCategory,
@@ -142,16 +130,6 @@ export default async function DashboardPage() {
             <div className={styles.metricLabel}>Avg Rating</div>
             <div className={styles.metricValue}>{stats.avgRating.toFixed(1)}</div>
             <div className={styles.metricSubtext}>out of 10</div>
-          </div>
-        </div>
-
-        <div className={styles.metric}>
-          <div className={styles.metricIcon} style={{ background: 'var(--purple)' }}>
-            👥
-          </div>
-          <div className={styles.metricContent}>
-            <div className={styles.metricLabel}>Clients</div>
-            <div className={styles.metricValue}>{stats.uniqueClients}</div>
           </div>
         </div>
       </div>

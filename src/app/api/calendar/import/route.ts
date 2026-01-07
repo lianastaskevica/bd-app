@@ -142,8 +142,8 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Use event summary as client name, fallback to file name
-        const clientName = event.summary || transcriptFile.name.replace(/\.(txt|pdf|docx?)$/i, '');
+        // Use event summary as call title, fallback to file name
+        const callTitle = event.summary || transcriptFile.name.replace(/\.(txt|pdf|docx?)$/i, '');
 
         // Run AI analysis
         const analysis = await analyzeCall(transcriptFile.rawText, prompt.analysisPrompt, prompt.ratingPrompt);
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
         // Create Call record
         const call = await prisma.call.create({
           data: {
-            clientName,
+            callTitle,
             callDate: event.startTime,
             organizer: event.organizer || 'Unknown',
             participants: event.attendees,

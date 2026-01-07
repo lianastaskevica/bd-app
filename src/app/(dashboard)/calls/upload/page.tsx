@@ -9,7 +9,7 @@ export default function UploadCallPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    clientName: '',
+    callTitle: '',
     callDate: new Date().toISOString().split('T')[0],
     organizer: '',
     participants: '',
@@ -60,12 +60,12 @@ export default function UploadCallPage() {
       <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.formGrid}>
           <div className={styles.field}>
-            <label>Client Name *</label>
+            <label>Call Title *</label>
             <input
               type="text"
               className="input"
-              value={formData.clientName}
-              onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+              value={formData.callTitle}
+              onChange={(e) => setFormData({ ...formData, callTitle: e.target.value })}
               required
             />
           </div>

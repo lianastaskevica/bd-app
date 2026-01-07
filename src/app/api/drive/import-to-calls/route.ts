@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Extract metadata
-        const clientName = cleanFileName(file.name);
+        const callTitle = cleanFileName(file.name);
         const callDate = extractCallDate(file.rawText, file.modifiedTime);
         
         // Try to match with Calendar event for participant emails
@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
         const analysis = await analyzeCall(file.rawText, prompt.analysisPrompt, prompt.ratingPrompt);
 
         // Run AI category classification
-        const { transcriptSummary, prediction } = await classifyCall(clientName, file.rawText);
+        const { transcriptSummary, prediction } = await classifyCall(callTitle, file.rawText);
 
         // Find the predicted category (must exist in our fixed 8 categories)
         const predictedCategory = await prisma.category.findFirst({
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
         // Create Call record
         await prisma.call.create({
           data: {
-            clientName,
+            callTitle,
             callDate,
             organizer,
             participants,

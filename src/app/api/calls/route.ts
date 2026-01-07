@@ -9,9 +9,10 @@ export async function POST(request: NextRequest) {
     await requireAuth();
 
     const body = await request.json();
-    const { clientName, callDate, organizer, participants, transcript } = body;
+    const { callTitle, clientName, callDate, organizer, participants, transcript } = body;
+    const title = callTitle || clientName; // Support both field names during transition
 
-    if (!clientName || !callDate || !organizer || !transcript) {
+    if (!title || !callDate || !organizer || !transcript) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     const analysis = await analyzeCall(transcript, prompt.analysisPrompt, prompt.ratingPrompt);
 
     // Run AI category classification
-    const { transcriptSummary, prediction } = await classifyCall(clientName, transcript);
+    const { transcriptSummary, prediction } = await classifyCall(title, transcript);
 
     // Find the predicted category (must exist in our fixed 9 categories)
     const predictedCategory = await prisma.category.findFirst({
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     // Create the call
     const call = await prisma.call.create({
       data: {
-        clientName,
+        callTitle: title,
         callDate: new Date(callDate),
         organizer,
         participants: participants || [],

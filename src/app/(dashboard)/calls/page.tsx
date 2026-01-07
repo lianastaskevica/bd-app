@@ -16,7 +16,7 @@ async function getCalls(searchParams: SearchParams) {
   const where: any = {};
 
   if (searchParams.client) {
-    where.clientName = searchParams.client;
+    where.callTitle = searchParams.client;
   }
 
   if (searchParams.organizer) {
@@ -25,7 +25,7 @@ async function getCalls(searchParams: SearchParams) {
 
   if (searchParams.search) {
     where.OR = [
-      { clientName: { contains: searchParams.search, mode: 'insensitive' } },
+      { callTitle: { contains: searchParams.search, mode: 'insensitive' } },
       { organizer: { contains: searchParams.search, mode: 'insensitive' } },
       { transcript: { contains: searchParams.search, mode: 'insensitive' } },
     ];
@@ -45,7 +45,7 @@ async function getCalls(searchParams: SearchParams) {
     where.categoryFinalId = searchParams.category;
   }
 
-  const [calls, clients, organizers, categories] = await Promise.all([
+  const [calls, organizers, categories] = await Promise.all([
     prisma.call.findMany({
       where,
       orderBy: {
@@ -54,11 +54,6 @@ async function getCalls(searchParams: SearchParams) {
       include: {
         categoryFinal: true,
       },
-    }),
-    prisma.call.findMany({
-      select: { clientName: true },
-      distinct: ['clientName'],
-      orderBy: { clientName: 'asc' },
     }),
     prisma.call.findMany({
       select: { organizer: true },
@@ -73,7 +68,6 @@ async function getCalls(searchParams: SearchParams) {
 
   return {
     calls,
-    clients: clients.map((c) => c.clientName),
     organizers: organizers.map((o) => o.organizer),
     categories,
   };
@@ -85,7 +79,7 @@ export default async function CallsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { calls, clients, organizers, categories } = await getCalls(params);
+  const { calls, organizers, categories } = await getCalls(params);
 
   return (
     <div className={styles.callsPage}>
@@ -102,7 +96,6 @@ export default async function CallsPage({
       <CalendarImport />
 
       <CallFilters
-        clients={clients}
         organizers={organizers}
         categories={categories}
         currentFilters={params}
@@ -126,7 +119,7 @@ export default async function CallsPage({
           calls.map((call) => (
             <Link href={`/calls/${call.id}`} key={call.id} className={styles.callCard}>
               <div className={styles.callHeader}>
-                <h3 className={styles.callClient}>{call.clientName}</h3>
+                <h3 className={styles.callClient}>{call.callTitle}</h3>
                 {call.aiRating && (
                   <div className={styles.rating}>
                     <span className={styles.ratingValue}>{call.aiRating.toFixed(1)}</span>

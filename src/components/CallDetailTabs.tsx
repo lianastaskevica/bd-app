@@ -5,7 +5,7 @@ import styles from './CallDetailTabs.module.scss';
 
 interface Call {
   id: string;
-  clientName: string;
+  callTitle: string;
   callDate: Date;
   organizer: string;
   participants: string[];

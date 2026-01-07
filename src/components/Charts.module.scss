@@ -19,3 +19,57 @@
   font-size: 14px;
 }
 
+.categoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+}
+
+.categoryCard {
+  background: linear-gradient(135deg, rgba(var(--category-color-rgb, 59, 130, 246), 0.05) 0%, rgba(var(--category-color-rgb, 59, 130, 246), 0.02) 100%);
+  border: 2px solid var(--category-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  transition: all 0.3s ease;
+  min-height: 140px;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-width: 3px;
+  }
+}
+
+.categoryName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.categoryRating {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.ratingNumber {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--category-color);
+  line-height: 1;
+}
+
+.ratingMax {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+

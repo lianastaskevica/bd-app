@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 import { analyzeCall } from '@/lib/openai';
+import { classifyCall } from '@/lib/category-classifier';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,20 +30,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Analyze the call with AI
+    // Run AI analysis (for rating and feedback)
     const analysis = await analyzeCall(transcript, prompt.analysisPrompt, prompt.ratingPrompt);
 
-    // Find or create category based on AI analysis
-    let category = await prisma.category.findFirst({
-      where: { name: analysis.category },
+    // Run AI category classification
+    const { transcriptSummary, prediction } = await classifyCall(clientName, transcript);
+
+    // Find the predicted category (must exist in our fixed 9 categories)
+    const predictedCategory = await prisma.category.findFirst({
+      where: { name: prediction.predictedCategory, isFixed: true },
     });
 
-    if (!category) {
-      // Create category if it doesn't exist
-      category = await prisma.category.create({
-        data: { name: analysis.category },
-      });
+    if (!predictedCategory) {
+      throw new Error(`Invalid predicted category: ${prediction.predictedCategory}`);
     }
+
+    // Determine final category: auto-assign if confidence >= 0.75
+    let categoryId: string | null = null;
+    let categoryFinalId: string | null = null;
+
+    if (prediction.confidence >= 0.75) {
+      // Auto-assign with high confidence
+      categoryId = predictedCategory.id;
+      categoryFinalId = predictedCategory.id;
+    } else if (prediction.confidence >= 0.50) {
+      // Auto-assign but needs review
+      categoryId = predictedCategory.id;
+      categoryFinalId = predictedCategory.id;
+    }
+    // else: confidence < 0.50, don't assign category, show suggestions only
 
     // Create the call
     const call = await prisma.call.create({
@@ -52,15 +68,26 @@ export async function POST(request: NextRequest) {
         organizer,
         participants: participants || [],
         transcript,
-        categoryId: category.id,
+        transcriptSummary,
+        categoryId,
         aiAnalysis: analysis.summary,
         aiRating: analysis.rating,
         aiSentiment: analysis.sentiment,
         aiStrengths: analysis.strengths,
         aiAreasForImprovement: analysis.areasForImprovement,
+        // AI Category Prediction fields
+        predictedCategoryId: predictedCategory.id,
+        confidenceScore: prediction.confidence,
+        categoryReasoning: prediction.reasoning.join('\n'),
+        topCandidates: prediction.topCandidates,
+        needsReview: prediction.needsReview,
+        categoryFinalId,
+        wasOverridden: false,
       },
       include: {
         category: true,
+        predictedCategory: true,
+        categoryFinal: true,
       },
     });
 

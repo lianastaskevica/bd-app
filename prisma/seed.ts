@@ -71,7 +71,7 @@ Provide 2-4 specific strengths and 1-3 areas for improvement.`,
   // Create sample calls
   const sampleCalls = [
     {
-      clientName: 'Acme Corporation',
+      callTitle: 'Acme Corporation - Project Scope Discussion',
       callDate: new Date('2024-01-15'),
       organizer: 'Sarah Chen',
       participants: ['John Smith', 'Emily Johnson'],
@@ -108,7 +108,7 @@ Sarah: Wonderful. I'll send out calendar invites and the documentation by end of
       ],
     },
     {
-      clientName: 'TechCorp Industries',
+      callTitle: 'TechCorp Industries - Requirements Gathering',
       callDate: new Date('2024-01-14'),
       organizer: 'Michael Ross',
       participants: ['Alice Brown', 'David Lee'],
@@ -145,7 +145,7 @@ Michael: That's pragmatic. I'll update the requirements document and share it fo
       ],
     },
     {
-      clientName: 'Globex Systems',
+      callTitle: 'Globex Systems - Technical Review',
       callDate: new Date('2024-01-13'),
       organizer: 'Emma Williams',
       participants: ['Robert Taylor', 'Linda Martinez'],
@@ -182,7 +182,7 @@ Linda: Thank you. We're looking forward to continued improvements.`,
       ],
     },
     {
-      clientName: 'Initech Solutions',
+      callTitle: 'Initech Solutions - Kickoff Call',
       callDate: new Date('2024-01-12'),
       organizer: 'James Peterson',
       participants: ['Susan Clark', 'Mark Wilson'],
@@ -231,7 +231,7 @@ Susan: Perfect. This has been very helpful. Strong executive buy-in achieved.`,
 
     await prisma.call.create({
       data: {
-        clientName: callData.clientName,
+        callTitle: callData.callTitle,
         callDate: callData.callDate,
         organizer: callData.organizer,
         participants: callData.participants,

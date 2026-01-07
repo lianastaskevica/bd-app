@@ -51,6 +51,9 @@ async function getCalls(searchParams: SearchParams) {
       orderBy: {
         callDate: 'desc',
       },
+      include: {
+        categoryFinal: true,
+      },
     }),
     prisma.call.findMany({
       select: { clientName: true },
@@ -141,6 +144,13 @@ export default async function CallsPage({
                   </span>
                 )}
               </div>
+
+              {call.categoryFinal && (
+                <div className={styles.categoryBadge} style={{ borderColor: call.categoryFinal.color || '#6366f1' }}>
+                  <div className={styles.categoryDot} style={{ background: call.categoryFinal.color || '#6366f1' }} />
+                  {call.categoryFinal.name}
+                </div>
+              )}
 
               <p className={styles.callSummary}>
                 {call.aiAnalysis

@@ -112,6 +112,29 @@
   color: white;
 }
 
+.categoryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid;
+  margin-top: var(--spacing-sm);
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.categoryDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .callSummary {
   color: var(--text-secondary);
   font-size: 14px;

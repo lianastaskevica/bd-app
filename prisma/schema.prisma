@@ -132,6 +132,12 @@ model GoogleIntegration {
   connectedAt   DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
+  // Auto-sync settings
+  autoSyncEnabled       Boolean   @default(true)
+  lastSyncedAt          DateTime?
+  lastSyncStatus        String?   // success, failed, partial
+  lastSyncError         String?   @db.Text
+  
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

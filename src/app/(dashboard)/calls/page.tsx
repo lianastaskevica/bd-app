@@ -9,6 +9,7 @@ interface SearchParams {
   organizer?: string;
   search?: string;
   callType?: string; // 'external', 'internal', or 'unknown'
+  category?: string; // category ID
 }
 
 async function getCalls(searchParams: SearchParams) {
@@ -40,7 +41,11 @@ async function getCalls(searchParams: SearchParams) {
     }
   }
 
-  const [calls, clients, organizers] = await Promise.all([
+  if (searchParams.category) {
+    where.categoryFinalId = searchParams.category;
+  }
+
+  const [calls, clients, organizers, categories] = await Promise.all([
     prisma.call.findMany({
       where,
       orderBy: {
@@ -57,12 +62,17 @@ async function getCalls(searchParams: SearchParams) {
       distinct: ['organizer'],
       orderBy: { organizer: 'asc' },
     }),
+    prisma.category.findMany({
+      where: { isFixed: true },
+      orderBy: { name: 'asc' },
+    }),
   ]);
 
   return {
     calls,
     clients: clients.map((c) => c.clientName),
     organizers: organizers.map((o) => o.organizer),
+    categories,
   };
 }
 
@@ -72,7 +82,7 @@ export default async function CallsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { calls, clients, organizers } = await getCalls(params);
+  const { calls, clients, organizers, categories } = await getCalls(params);
 
   return (
     <div className={styles.callsPage}>
@@ -91,6 +101,7 @@ export default async function CallsPage({
       <CallFilters
         clients={clients}
         organizers={organizers}
+        categories={categories}
         currentFilters={params}
       />
 

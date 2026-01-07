@@ -1,0 +1,71 @@
+.categoriesPage {
+  padding: var(--spacing-xl);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: var(--spacing-sm) 0 0;
+}
+
+.overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.overviewCard {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.overviewIcon {
+  font-size: 32px;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.overviewInfo {
+  flex: 1;
+}
+
+.overviewValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.overviewLabel {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+

@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import styles from './dashboard.module.scss';
-import { RatingByClient, RatingByOrganizer } from '@/components/Charts';
+import { RatingByClient, RatingByOrganizer, RatingByCategory } from '@/components/Charts';
 
 async function getDashboardStats() {
   const [totalCalls, calls] = await Promise.all([
@@ -54,6 +54,36 @@ async function getDashboardStats() {
     }))
     .sort((a, b) => b.rating - a.rating);
 
+  // Rating by category
+  const categoryRatings = new Map<string, { total: number; count: number; name: string }>();
+  const callsWithCategories = await prisma.call.findMany({
+    where: { categoryFinalId: { not: null } },
+    include: { categoryFinal: true },
+  });
+
+  callsWithCategories.forEach((call) => {
+    if (call.aiRating && call.categoryFinal) {
+      const existing = categoryRatings.get(call.categoryFinal.id) || {
+        total: 0,
+        count: 0,
+        name: call.categoryFinal.name,
+      };
+      categoryRatings.set(call.categoryFinal.id, {
+        total: existing.total + call.aiRating,
+        count: existing.count + 1,
+        name: existing.name,
+      });
+    }
+  });
+
+  const ratingByCategory = Array.from(categoryRatings.values())
+    .map(({ name, total, count }) => ({
+      name,
+      rating: total / count,
+      count,
+    }))
+    .sort((a, b) => b.rating - a.rating);
+
   return {
     totalCalls,
     analyzedCalls,
@@ -61,6 +91,7 @@ async function getDashboardStats() {
     uniqueClients,
     ratingByClient,
     ratingByOrganizer,
+    ratingByCategory,
   };
 }
 
@@ -132,6 +163,10 @@ export default async function DashboardPage() {
 
         <div className={styles.chart}>
           <RatingByOrganizer data={stats.ratingByOrganizer} />
+        </div>
+
+        <div className={styles.chart}>
+          <RatingByCategory data={stats.ratingByCategory} />
         </div>
       </div>
     </div>

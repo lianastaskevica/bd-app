@@ -4,18 +4,25 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import styles from './CallFilters.module.scss';
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 interface CallFiltersProps {
   clients: string[];
   organizers: string[];
+  categories: Category[];
   currentFilters: {
     client?: string;
     organizer?: string;
     search?: string;
     callType?: string;
+    category?: string;
   };
 }
 
-export function CallFilters({ clients, organizers, currentFilters }: CallFiltersProps) {
+export function CallFilters({ clients, organizers, categories, currentFilters }: CallFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(currentFilters.search || '');
@@ -41,7 +48,7 @@ export function CallFilters({ clients, organizers, currentFilters }: CallFilters
   };
 
   const hasFilters =
-    currentFilters.client || currentFilters.organizer || currentFilters.search || currentFilters.callType;
+    currentFilters.client || currentFilters.organizer || currentFilters.search || currentFilters.callType || currentFilters.category;
 
   return (
     <div className={styles.filters}>
@@ -90,6 +97,19 @@ export function CallFilters({ clients, organizers, currentFilters }: CallFilters
         <option value="external">🌐 External Only</option>
         <option value="internal">🏢 Internal Only</option>
         <option value="unknown">❓ Unknown</option>
+      </select>
+
+      <select
+        className="input"
+        value={currentFilters.category || ''}
+        onChange={(e) => updateFilter('category', e.target.value)}
+      >
+        <option value="">All Categories</option>
+        {categories.map((category) => (
+          <option key={category.id} value={category.id}>
+            {category.name}
+          </option>
+        ))}
       </select>
 
       {hasFilters && (

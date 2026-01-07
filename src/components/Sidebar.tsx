@@ -22,6 +22,7 @@ interface SidebarProps {
 const navItems: NavItem[] = [
   { name: 'Dashboard', path: '/dashboard', icon: '📊' },
   { name: 'Calls', path: '/calls', icon: '📞' },
+  { name: 'Categories', path: '/categories', icon: '🏷️' },
   { name: 'Prompts', path: '/prompts', icon: '📝' },
   { name: 'Integrations', path: '/integrations', icon: '🔗' },
 ];

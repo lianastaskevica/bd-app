@@ -105,6 +105,18 @@ Strong Signals:
 Must NOT include: Routine feedback tone, Normal planning cadence`,
     color: '#EF4444', // Red
   },
+  {
+    name: 'Other',
+    description: `Intent: Catch-all category for calls that do not fit any other category.
+Use this category when:
+- Call content is unclear or ambiguous
+- Call does not match intent of any specific category
+- Call is administrative, scheduling, or logistics focused
+- Call is social or relationship building without business purpose
+- Call topic is outside normal client engagement patterns
+Important: This should be the LAST choice - only use if no other category fits`,
+    color: '#6B7280', // Gray
+  },
 ];
 
 async function main() {

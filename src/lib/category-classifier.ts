@@ -54,6 +54,12 @@ const CATEGORY_PLAYBOOKS = {
     strongSignals: ['escalation', 'problem', 'crisis', 'dispute', 'conflict', 'issue', 'concern', 'urgent'],
     weakSignals: ['routine', 'planning', 'roadmap'],
   },
+  'Other': {
+    intent: 'catch-all for calls that do not fit other categories',
+    timeframe: 'varies',
+    strongSignals: ['administrative', 'scheduling', 'logistics', 'social', 'informal', 'catch up'],
+    weakSignals: ['proposal', 'discovery', 'requirements', 'roadmap', 'escalation', 'feedback'],
+  },
 };
 
 interface HeuristicScore {
@@ -172,6 +178,14 @@ async function llmAdjudicate(
 Available categories (you MUST choose exactly one):
 ${categoryDefinitions}
 
+IMPORTANT RULE: If the call does NOT clearly fit any of the first 8 categories, you MUST select "Other" as the category.
+
+The "Other" category is for:
+- Administrative, scheduling, or logistics calls
+- Social or informal relationship building
+- Calls that are unclear or ambiguous
+- Any call that doesn't match the intent of other categories
+
 You MUST respond with valid JSON in this exact format:
 {
   "category": "exact category name",
@@ -186,7 +200,7 @@ You MUST respond with valid JSON in this exact format:
 Confidence rules:
 - ≥ 0.75: High confidence, clear match
 - 0.50-0.75: Medium confidence, some ambiguity  
-- < 0.50: Low confidence, unclear
+- < 0.50: Low confidence, unclear (consider "Other" category)
 
 Provide 2-5 specific reasoning bullets referencing observed signals.`,
         },

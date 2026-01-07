@@ -109,14 +109,23 @@ export function RatingByOrganizer({ data }: { data: RatingData[] }) {
 }
 
 export function RatingByCategory({ data }: { data: RatingData[] }) {
+  // Calculate dynamic height based on number of categories
+  const chartHeight = Math.max(300, data.length * 50);
+  
   return (
     <div className={styles.chartContainer}>
       <h3 className={styles.chartTitle}>Rating by Category</h3>
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={data}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
+        <BarChart data={data} layout="horizontal" margin={{ left: 20, right: 30, top: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-          <XAxis dataKey="name" stroke="#94a3b8" />
-          <YAxis domain={[0, 10]} stroke="#94a3b8" />
+          <XAxis type="number" domain={[0, 10]} stroke="#94a3b8" />
+          <YAxis 
+            type="category" 
+            dataKey="name" 
+            stroke="#94a3b8" 
+            width={250}
+            tick={{ fontSize: 13 }}
+          />
           <Tooltip
             contentStyle={{
               backgroundColor: '#1a2332',
@@ -126,7 +135,11 @@ export function RatingByCategory({ data }: { data: RatingData[] }) {
             }}
             formatter={(value: any) => [value.toFixed(1), 'Rating']}
           />
-          <Bar dataKey="rating" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+          <Bar dataKey="rating" fill="#3b82f6" radius={[0, 8, 8, 0]}>
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
       {data.length === 0 && (

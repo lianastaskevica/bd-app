@@ -63,6 +63,8 @@ export async function GET(request: NextRequest) {
       failed: 0,
       totalNewEvents: 0,
       totalUpdatedEvents: 0,
+      totalImportedCalls: 0,
+      totalFailedImports: 0,
       errors: [] as Array<{ userId: string; email: string | null; error: string }>,
     };
 
@@ -87,9 +89,12 @@ export async function GET(request: NextRequest) {
           results.success++;
           results.totalNewEvents += syncResult.newEvents;
           results.totalUpdatedEvents += syncResult.updatedEvents;
+          results.totalImportedCalls += syncResult.importedCalls || 0;
+          results.totalFailedImports += syncResult.failedImports || 0;
           console.log(
             `✓ Synced ${integration.googleEmail}: ` +
-            `${syncResult.newEvents} new, ${syncResult.updatedEvents} updated`
+            `${syncResult.newEvents} new, ${syncResult.updatedEvents} updated, ` +
+            `${syncResult.importedCalls || 0} calls imported`
           );
         } else {
           results.failed++;
@@ -120,6 +125,8 @@ export async function GET(request: NextRequest) {
       failed: results.failed,
       newEvents: results.totalNewEvents,
       updatedEvents: results.totalUpdatedEvents,
+      importedCalls: results.totalImportedCalls,
+      failedImports: results.totalFailedImports,
     });
 
     return NextResponse.json({
@@ -131,6 +138,8 @@ export async function GET(request: NextRequest) {
         failed: results.failed,
         newEvents: results.totalNewEvents,
         updatedEvents: results.totalUpdatedEvents,
+        importedCalls: results.totalImportedCalls,
+        failedImports: results.totalFailedImports,
         errors: results.errors.length > 0 ? results.errors : undefined,
       },
       timestamp: new Date().toISOString(),

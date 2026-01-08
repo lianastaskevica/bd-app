@@ -14,6 +14,8 @@ export interface SyncResult {
   success: boolean;
   newEvents: number;
   updatedEvents: number;
+  importedCalls?: number;
+  failedImports?: number;
   errors: string[];
 }
 
@@ -189,15 +191,25 @@ export async function syncUserCalendar(
       }
     }
 
-    // Update last sync info
+    // Auto-import external calls with transcripts
+    const importResult = await autoImportExternalCalls(userId);
+    
+    // Update last sync info (include import stats)
+    const syncStatus = result.errors.length === 0 && importResult.failed === 0 ? 'success' : 'partial';
+    const allErrors = [...result.errors, ...importResult.errors];
+    
     await prisma.googleIntegration.update({
       where: { userId },
       data: {
         lastSyncedAt: new Date(),
-        lastSyncStatus: result.errors.length === 0 ? 'success' : 'partial',
-        lastSyncError: result.errors.length > 0 ? result.errors.join('; ') : null,
+        lastSyncStatus: syncStatus,
+        lastSyncError: allErrors.length > 0 ? allErrors.join('; ') : null,
       },
     });
+
+    // Add import stats to result
+    (result as any).importedCalls = importResult.imported;
+    (result as any).failedImports = importResult.failed;
 
     result.success = true;
     return result;
@@ -218,6 +230,186 @@ export async function syncUserCalendar(
       console.error('Failed to update sync status:', updateError);
     }
 
+    result.errors.push(error.message);
+    return result;
+  }
+}
+
+/**
+ * Auto-import external calls with transcripts
+ * Called after calendar sync to automatically create Call records
+ */
+export async function autoImportExternalCalls(userId: string): Promise<{
+  imported: number;
+  failed: number;
+  errors: string[];
+}> {
+  const result = {
+    imported: 0,
+    failed: 0,
+    errors: [] as string[],
+  };
+
+  try {
+    // Find external calendar events with transcripts that haven't been imported yet
+    const eventsToImport = await prisma.calendarEvent.findMany({
+      where: {
+        userId,
+        isExternal: true,
+        hasTranscript: true,
+        imported: false,
+        transcriptFileId: { not: null },
+      },
+      take: 50, // Limit to 50 events per sync to avoid timeouts
+    });
+
+    if (eventsToImport.length === 0) {
+      return result;
+    }
+
+    console.log(`Auto-importing ${eventsToImport.length} external calls for user ${userId}`);
+
+    // Get active prompt for AI analysis
+    const prompt = await prisma.prompt.findFirst({
+      where: { isActive: true },
+    });
+
+    if (!prompt) {
+      result.errors.push('No active prompt found');
+      return result;
+    }
+
+    // Import the openai and category-classifier functions
+    const { analyzeCall } = await import('./openai');
+    const { classifyCall } = await import('./category-classifier');
+
+    // Process each event
+    for (const event of eventsToImport) {
+      try {
+        // Get transcript file content
+        const transcriptFile = await prisma.driveFile.findUnique({
+          where: { id: event.transcriptFileId! },
+        });
+
+        if (!transcriptFile || !transcriptFile.rawText) {
+          result.errors.push(`${event.summary || 'Untitled'}: Transcript file not found or empty`);
+          result.failed++;
+          continue;
+        }
+
+        // Run AI analysis
+        const analysis = await analyzeCall(
+          transcriptFile.rawText,
+          prompt.analysisPrompt,
+          prompt.ratingPrompt
+        );
+
+        // Run AI category classification
+        const { transcriptSummary, prediction } = await classifyCall(
+          event.summary || 'Untitled',
+          transcriptFile.rawText
+        );
+
+        // Find the predicted category
+        const predictedCategory = await prisma.category.findFirst({
+          where: { name: prediction.predictedCategory, isFixed: true },
+        });
+
+        if (!predictedCategory) {
+          result.errors.push(`${event.summary || 'Untitled'}: Invalid category ${prediction.predictedCategory}`);
+          result.failed++;
+          continue;
+        }
+
+        // Determine final category based on confidence
+        let categoryFinalId: string | null = null;
+        if (prediction.confidence >= 0.5) {
+          categoryFinalId = predictedCategory.id;
+        }
+
+        // Check for duplicate calls (same meetCode and date)
+        let isDuplicate = false;
+        let primaryCallId: string | null = null;
+
+        if (event.meetCode) {
+          const existingCall = await prisma.call.findFirst({
+            where: {
+              meetCode: event.meetCode,
+              callDate: event.startTime,
+            },
+          });
+
+          if (existingCall) {
+            isDuplicate = true;
+            primaryCallId = existingCall.id;
+            
+            // Mark event as imported (but duplicate)
+            await prisma.calendarEvent.update({
+              where: { id: event.id },
+              data: { imported: true },
+            });
+            
+            result.errors.push(`${event.summary || 'Untitled'}: Duplicate call - already imported`);
+            result.failed++;
+            continue;
+          }
+        }
+
+        // Create Call record
+        const call = await prisma.call.create({
+          data: {
+            callTitle: event.summary || 'Untitled Meeting',
+            callDate: event.startTime,
+            organizer: event.organizer || 'Unknown',
+            participants: event.attendees,
+            transcript: transcriptFile.rawText,
+            
+            // AI Analysis
+            aiAnalysis: analysis.summary,
+            aiRating: analysis.rating,
+            aiSentiment: analysis.sentiment,
+            aiStrengths: analysis.strengths,
+            aiAreasForImprovement: analysis.areasForImprovement,
+            
+            // AI Category Prediction
+            transcriptSummary,
+            predictedCategoryId: predictedCategory.id,
+            confidenceScore: prediction.confidence,
+            categoryReasoning: prediction.reasoning.join('\n'),
+            topCandidates: prediction.topCandidates,
+            needsReview: prediction.needsReview,
+            categoryFinalId,
+            
+            // External classification
+            isExternal: event.isExternal,
+            externalDomains: event.externalDomains,
+            
+            // Link to calendar event
+            meetCode: event.meetCode,
+          },
+        });
+
+        // Mark calendar event as imported
+        await prisma.calendarEvent.update({
+          where: { id: event.id },
+          data: {
+            imported: true,
+            importedCallId: call.id,
+          },
+        });
+
+        result.imported++;
+        console.log(`✓ Auto-imported: ${event.summary || 'Untitled'}`);
+      } catch (error: any) {
+        result.failed++;
+        result.errors.push(`${event.summary || 'Untitled'}: ${error.message}`);
+        console.error(`Error auto-importing event ${event.id}:`, error);
+      }
+    }
+
+    return result;
+  } catch (error: any) {
+    console.error('Auto-import error:', error);
     result.errors.push(error.message);
     return result;
   }

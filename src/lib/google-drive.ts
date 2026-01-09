@@ -52,8 +52,9 @@ export async function getDriveClient(userId: string) {
     access_token: integration.accessToken || undefined,
   });
 
-  // Refresh token if expired
-  if (integration.tokenExpiry && new Date(integration.tokenExpiry) < new Date()) {
+  // Always try to refresh token to ensure it's valid
+  // This helps catch invalid_grant errors early and ensures fresh tokens
+  try {
     const { credentials } = await oauth2Client.refreshAccessToken();
     
     // Update tokens in DB
@@ -66,6 +67,9 @@ export async function getDriveClient(userId: string) {
     });
     
     oauth2Client.setCredentials(credentials);
+  } catch (refreshError: any) {
+    console.error(`Token refresh failed for user ${userId}:`, refreshError.message);
+    throw new Error(`Token refresh failed: ${refreshError.message}`);
   }
 
   return google.drive({ version: 'v3', auth: oauth2Client });

@@ -260,7 +260,7 @@ export async function autoImportExternalCalls(userId: string): Promise<{
         imported: false,
         transcriptFileId: { not: null },
       },
-      take: 50, // Limit to 50 events per sync to avoid timeouts
+      take: 5, // Limit to 5 events per sync to avoid timeouts (can increase gradually)
     });
 
     if (eventsToImport.length === 0) {

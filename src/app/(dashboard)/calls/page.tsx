@@ -10,6 +10,7 @@ interface SearchParams {
   search?: string;
   callType?: string; // 'external', 'internal', or 'unknown'
   category?: string; // category ID
+  sortBy?: string; // 'date' | 'rating-desc' | 'rating-asc'
 }
 
 async function getCalls(searchParams: SearchParams) {
@@ -45,12 +46,19 @@ async function getCalls(searchParams: SearchParams) {
     where.categoryFinalId = searchParams.category;
   }
 
+  // Determine sort order
+  let orderBy: any = { callDate: 'desc' }; // Default sort by date
+  
+  if (searchParams.sortBy === 'rating-desc') {
+    orderBy = { aiRating: 'desc' };
+  } else if (searchParams.sortBy === 'rating-asc') {
+    orderBy = { aiRating: 'asc' };
+  }
+
   const [calls, organizers, categories] = await Promise.all([
     prisma.call.findMany({
       where,
-      orderBy: {
-        callDate: 'desc',
-      },
+      orderBy,
       include: {
         categoryFinal: true,
       },

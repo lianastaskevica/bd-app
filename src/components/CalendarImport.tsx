@@ -53,6 +53,28 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
     pending: 0,
   });
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Filters
+  const [filterTranscript, setFilterTranscript] = useState<'all' | 'with' | 'without'>('all');
+  const [filterDuplicate, setFilterDuplicate] = useState<'all' | 'unique' | 'duplicate'>('all');
+  
+  // Get filtered events
+  const filteredEvents = events.filter((event) => {
+    if (filterTranscript === 'with' && !event.hasTranscript) return false;
+    if (filterTranscript === 'without' && event.hasTranscript) return false;
+    if (filterDuplicate === 'unique' && event.isDuplicate) return false;
+    if (filterDuplicate === 'duplicate' && !event.isDuplicate) return false;
+    return true;
+  });
+
+  // Paginate filtered events
+  const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedEvents = filteredEvents.slice(startIndex, startIndex + itemsPerPage);
+
   const handleSync = async () => {
     setSyncing(true);
     setError('');
@@ -124,12 +146,23 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
   };
 
   const selectAll = () => {
-    const allIds = events.map((e) => e.id);
+    // Select all filtered events (not just current page)
+    const allIds = filteredEvents.map((e) => e.id);
     setSelectedEvents(new Set(allIds));
   };
 
   const deselectAll = () => {
     setSelectedEvents(new Set());
+  };
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = (filterType: 'transcript' | 'duplicate', value: string) => {
+    setCurrentPage(1);
+    if (filterType === 'transcript') {
+      setFilterTranscript(value as 'all' | 'with' | 'without');
+    } else {
+      setFilterDuplicate(value as 'all' | 'unique' | 'duplicate');
+    }
   };
 
   const handleImport = async () => {
@@ -277,10 +310,41 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
             </div>
           ) : (
             <>
+              {/* Filters */}
+              <div className={styles.filters}>
+                <div className={styles.filterGroup}>
+                  <label>Transcript:</label>
+                  <select
+                    className="input"
+                    value={filterTranscript}
+                    onChange={(e) => handleFilterChange('transcript', e.target.value)}
+                  >
+                    <option value="all">All</option>
+                    <option value="with">With Transcript</option>
+                    <option value="without">Without Transcript</option>
+                  </select>
+                </div>
+                <div className={styles.filterGroup}>
+                  <label>Status:</label>
+                  <select
+                    className="input"
+                    value={filterDuplicate}
+                    onChange={(e) => handleFilterChange('duplicate', e.target.value)}
+                  >
+                    <option value="all">All</option>
+                    <option value="unique">Unique Only</option>
+                    <option value="duplicate">Duplicates Only</option>
+                  </select>
+                </div>
+                <div className={styles.filterInfo}>
+                  Showing {filteredEvents.length} of {events.length} events
+                </div>
+              </div>
+
               <div className={styles.actions}>
                 <div className={styles.actionButtons}>
                   <button className="btn btn-secondary" onClick={selectAll}>
-                    Select All
+                    Select All {filteredEvents.length > 0 && `(${filteredEvents.length})`}
                   </button>
                   <button className="btn btn-secondary" onClick={deselectAll}>
                     Deselect All
@@ -290,6 +354,7 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
                     setEvents([]);
                     setSelectedEvents(new Set());
                     setSuccess('');
+                    setCurrentPage(1);
                   }}>
                     ← Change Date Range
                   </button>
@@ -305,8 +370,14 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
                 </button>
               </div>
 
-              <div className={styles.eventsList}>
-                {events.map((event) => {
+              {filteredEvents.length === 0 ? (
+                <div className={styles.empty}>
+                  <p>No events match the selected filters.</p>
+                </div>
+              ) : (
+                <>
+                  <div className={styles.eventsList}>
+                    {paginatedEvents.map((event) => {
                   const isDisabled = event.isDuplicate || !event.hasTranscript;
                   return (
                     <div
@@ -375,6 +446,31 @@ export function CalendarImport({ onImportComplete }: CalendarImportProps) {
                   );
                 })}
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className={styles.pagination}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    ← Previous
+                  </button>
+                  <span className={styles.pageInfo}>
+                    Page {currentPage} of {totalPages} ({filteredEvents.length} events)
+                  </span>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+            )}
             </>
           )}
         </div>

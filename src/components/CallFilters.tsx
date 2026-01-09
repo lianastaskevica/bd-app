@@ -18,6 +18,7 @@ interface CallFiltersProps {
     search?: string;
     callType?: string;
     category?: string;
+    sortBy?: string;
   };
 }
 
@@ -47,7 +48,7 @@ export function CallFilters({ organizers, categories, currentFilters }: CallFilt
   };
 
   const hasFilters =
-    currentFilters.client || currentFilters.organizer || currentFilters.search || currentFilters.callType || currentFilters.category;
+    currentFilters.client || currentFilters.organizer || currentFilters.search || currentFilters.callType || currentFilters.category || currentFilters.sortBy;
 
   return (
     <div className={styles.filters}>
@@ -96,6 +97,16 @@ export function CallFilters({ organizers, categories, currentFilters }: CallFilt
             {category.name}
           </option>
         ))}
+      </select>
+
+      <select
+        className="input"
+        value={currentFilters.sortBy || 'date'}
+        onChange={(e) => updateFilter('sortBy', e.target.value)}
+      >
+        <option value="date">Sort: Latest First</option>
+        <option value="rating-desc">Sort: Highest Rating</option>
+        <option value="rating-asc">Sort: Lowest Rating</option>
       </select>
 
       {hasFilters && (
